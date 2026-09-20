@@ -204,7 +204,7 @@ select.mini{border:1px solid var(--line);background:var(--surface-2);border-radi
 
 /* Nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
-nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav.tabs button{border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-2);position:relative}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button.on{color:var(--ink)}
@@ -261,16 +261,18 @@ const daysBetween=(a,b)=>Math.round((parseISO(b)-parseISO(a))/864e5);
 const DEF={
   finance:{income:0,items:[],goals:[]},
   plans:{tasks:[],ideas:[]},
+  work:{entries:[],tasks:[]},
   meta:{stepGoal:10000,gymWeek:4,milestones:[],reviews:{}}
 };
 const S={
-  days:{},finance:clone(DEF.finance),plans:clone(DEF.plans),meta:clone(DEF.meta),
+  days:{},finance:clone(DEF.finance),plans:clone(DEF.plans),work:clone(DEF.work),meta:clone(DEF.meta),
   tab:"hoy",date:todayISO(),period:"mes",anchor:todayISO(),finMonth:ymOf(new Date()),
-  planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null,editMs:null
+  planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null,editMs:null,
+  workSeg:"imputacion",workDate:todayISO(),editEntry:null,showWDone:false
 };
 const LS="mivida.v1";
-function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
-function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({days:S.days,finance:S.finance,plans:S.plans,meta:S.meta}))}catch(e){}}
+function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({days:S.days,finance:S.finance,plans:S.plans,work:S.work,meta:S.meta}))}catch(e){}}
 
 const emptyDay=()=>({gym:false,diet:false,steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null},mood:null,note:""});
 function getDay(id){const d=S.days[id];if(!d)return emptyDay();const e=emptyDay();return {...e,...d,place:{...e.place,...(d.place||{})}}}
@@ -286,7 +288,7 @@ document.addEventListener("focusout",()=>{setTimeout(()=>{if(pendingRender&&!typ
 
 /* ---------- copia de seguridad ---------- */
 async function exportBackup(){
-  const data={app:"mi-vida",version:1,exportedAt:new Date().toISOString(),days:S.days,finance:S.finance,plans:S.plans,meta:S.meta};
+  const data={app:"mi-vida",version:1,exportedAt:new Date().toISOString(),days:S.days,finance:S.finance,plans:S.plans,work:S.work,meta:S.meta};
   const name=`mi-vida-copia-${todayISO()}.json`;
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const file=new File([blob],name,{type:"application/json"});
@@ -303,7 +305,7 @@ function importBackup(file){
       const o=JSON.parse(r.result);
       if(!o||o.app!=="mi-vida")throw new Error("El archivo no es una copia de Mi vida.");
       if(!confirm("Se sustituirán los datos de este dispositivo por los de la copia. ¿Continuar?"))return;
-      S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.meta={...clone(DEF.meta),...o.meta};
+      S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.meta={...clone(DEF.meta),...o.meta};
       saveLocal();render();alert("Copia importada.");
     }catch(e){alert("No se ha podido importar: "+e.message)}
   };
@@ -405,13 +407,35 @@ function financeAt(ym){
   return {act,fixed,save,free:(+S.finance.income||0)-fixed-save};
 }
 
+/* ---------- trabajo ---------- */
+const PROJECTS=["JAKE","Rossellimac","Gavilán","KALMA","Emuasa","Preventa","Tiempos internos","Formación","Reuniones equipo","Vacaciones"];
+const PRIOR=[[0,"Sin prisa"],[1,"Baja"],[2,"Normal"],[3,"Alta"],[4,"Muy alta"],[5,"Urgente"]];
+function dayTargetHours(id){
+  const d=parseISO(id),dow=d.getDay();
+  if(dow===0||dow===6)return 0;
+  const month=d.getMonth()+1;
+  if(month===7||month===8)return 7;
+  return dow===5?7:8.5;
+}
+function monthTargetHours(ym){
+  const [y,mo]=ym.split("-").map(Number),last=new Date(y,mo,0).getDate();
+  let t=0;for(let day=1;day<=last;day++)t+=dayTargetHours(`${y}-${pad(mo)}-${pad(day)}`);
+  return t;
+}
+const entriesOn=id=>S.work.entries.filter(e=>e.date===id);
+const hoursOn=id=>entriesOn(id).reduce((s,e)=>s+(+e.hours||0),0);
+const entriesInMonth=ym=>S.work.entries.filter(e=>e.date.startsWith(ym));
+const hoursInMonth=ym=>entriesInMonth(ym).reduce((s,e)=>s+(+e.hours||0),0);
+const hFmt=n=>{n=+n||0;let s=n.toFixed(2).replace(/0+$/,"").replace(/\.$/,"");if(s==="")s="0";return `${s.replace(".",",")} h`};
+
 /* ---------- views ---------- */
 const TABS=[
   ["hoy","Hoy",'<path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/><circle cx="12" cy="12" r="4"/>'],
   ["stats","Stats",'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],
   ["dinero","Dinero",'<rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/>'],
   ["planes","Planes",'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>'],
-  ["hitos","Hitos",'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>']
+  ["hitos","Hitos",'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'],
+  ["trabajo","Trabajo",'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>']
 ];
 function renderNav(){document.getElementById("nav").innerHTML=TABS.map(([k,l,ic])=>`<button data-act="tab" data-tab="${k}" class="${S.tab===k?"on":""}" aria-current="${S.tab===k?"page":"false"}"><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join("")}
 function syncText(){return `<span class="sync cloud"><i></i>Guardado en tu iPhone</span>`}
@@ -424,7 +448,7 @@ function renderTop(){
     const d=new Date();
     top.innerHTML=`<div class="hero">${seaSVG()}<div class="greet"><div class="hello">${hi}, Dani</div><h1>${cap(DIAS[d.getDay()])} ${d.getDate()} de ${MESL[d.getMonth()]}</h1></div></div>`;
   }else{
-    const t={stats:"Estadísticas",dinero:"Dinero",planes:"Planes",hitos:"Hitos"}[S.tab];
+    const t={stats:"Estadísticas",dinero:"Dinero",planes:"Planes",hitos:"Hitos",trabajo:"Trabajo"}[S.tab];
     top.innerHTML=`<div class="band">${seaSVG(0,true)}<h1>${t}</h1></div>`;
   }
 }
@@ -653,16 +677,66 @@ ${past.length?`<details style="margin-top:6px"><summary>Pasados (${past.length})
   return html;
 }
 
+function entryForm(e){
+  e=e||{text:"",project:PROJECTS[0],hours:""};
+  return `<div class="form">
+<label>Tarea<input class="plain" id="wText" value="${esc(e.text)}" placeholder="Ej. Revisión de planos"></label>
+<div class="two"><label>Proyecto<select class="plain" id="wProject">${PROJECTS.map(p=>`<option ${e.project===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
+<label>Horas<input class="plain" id="wHours" type="number" inputmode="decimal" step="0.25" min="0" value="${e.hours}"></label></div>
+<div class="row"><button class="btn" data-act="saveEntry" data-id="${e.id||""}">${e.id?"Guardar cambios":"Imputar"}</button>${e.id?`<button class="btn ghost" data-act="cancelEntry">Cancelar</button><button class="btn danger" data-act="delEntry" data-id="${e.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
+}
+function viewImputacion(){
+  const id=S.workDate,t=todayISO(),dt=parseISO(id);
+  const lbl=id===t?"Hoy":id===addDays(t,-1)?"Ayer":cap(DIAS[dt.getDay()]);
+  const target=dayTargetHours(id),done=hoursOn(id),left=target-done;
+  const leftTxt=left>0?`Quedan ${hFmt(left)}`:left<0?`${hFmt(Math.abs(left))} de más`:"Completado";
+  const ym=id.slice(0,7),mTarget=monthTargetHours(ym),mDone=hoursInMonth(ym),mLeft=mTarget-mDone;
+  const mLeftTxt=mLeft>0?`Quedan ${hFmt(mLeft)} por imputar este mes`:mLeft<0?`${hFmt(Math.abs(mLeft))} de más este mes`:"Mes completado";
+  let html=`<div class="datebar" style="margin-top:0"><button class="iconbtn" data-act="wnav" data-v="-1" aria-label="Día anterior">‹</button>
+<div class="d"><b>${lbl}</b><span class="sub">${dt.getDate()} ${MESL[dt.getMonth()]} ${dt.getFullYear()}</span>${id!==t?`<br><button class="linkbtn" data-act="wtoday">Volver a hoy</button>`:""}</div>
+<button class="iconbtn" data-act="wnav" data-v="1" aria-label="Día siguiente" ${id>=t?"disabled style='opacity:.35'":""}>›</button></div>
+<section class="block" style="margin-top:14px"><div class="card free"><div class="sub">Objetivo del día: ${hFmt(target)}</div><div class="n" style="${left<0?"color:var(--red)":""}">${leftTxt}</div>
+<div class="progress"><i style="width:${target?Math.min(100,done/target*100):0}%;${done>target?"background:var(--red)":""}"></i></div>
+<div class="row between"><span class="sub">Imputado ${hFmt(done)}</span></div></div>
+<div class="card" style="margin-top:10px"><div class="row between"><span class="sub">Este mes</span><span class="sub">${hFmt(mDone)} de ${hFmt(mTarget)}</span></div>
+<div class="progress"><i style="width:${mTarget?Math.min(100,mDone/mTarget*100):0}%"></i></div>
+<div class="sub" style="margin-top:4px">${mLeftTxt}</div></div></section>`;
+  const list=entriesOn(id);
+  const row=en=>{
+    if(S.editEntry===en.id)return `<div class="li" style="display:block">${entryForm(en)}</div>`;
+    return `<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="editEntry" data-id="${en.id}"><div class="grow">${esc(en.text)}<small>${esc(en.project)}</small></div><span class="v">${hFmt(en.hours)}</span></button>`;
+  };
+  html+=`<section class="block"><h2>Imputado</h2><div class="list">${list.length?list.map(row).join(""):`<div class="empty-state">Sin horas imputadas este día.</div>`}</div></section>
+<section class="block"><h2>Nueva imputación</h2><div class="card">${S.editEntry?"<p class='sub'>Termina la edición abierta primero.</p>":entryForm({text:"",project:PROJECTS[0],hours:left>0?Math.round(left*4)/4:""})}</div></section>`;
+  return html;
+}
+function viewWTasks(){
+  const t=todayISO();
+  const pend=S.work.tasks.filter(x=>!x.done).sort((a,b)=>(b.priority??-1)-(a.priority??-1)||(a.due||"9999").localeCompare(b.due||"9999"));
+  const done=S.work.tasks.filter(x=>x.done).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
+  const prioTag=p=>p==null?"":`<span class="tag ${p>=4?"red":""}">${esc(PRIOR[p][1])}</span>`;
+  const row=x=>`<div class="task ${x.done?"done":""}"><button class="cb ${x.done?"on":""}" data-act="doneWTask" data-id="${x.id}" aria-label="Marcar como hecha">✓</button><div class="grow"><span>${esc(x.text)}</span><div class="row" style="gap:8px;margin-top:4px">${x.due&&!x.done?`<span class="due ${x.due<t?"late":""}">${x.due<t?"Vencida · ":""}${looseLabel(x.due)}</span>`:""}${!x.done?prioTag(x.priority):""}</div></div><button class="x" data-act="delWTask" data-id="${x.id}" aria-label="Borrar">×</button></div>`;
+  let html=`<section class="block"><div class="field" style="margin-top:0;flex-wrap:wrap"><input id="wtText" placeholder="Nueva tarea" data-enter="addWTask" style="flex:1 1 160px"><input id="wtDue" type="date" style="flex:0 0 auto;width:auto;font-size:13px;color:var(--ink-2)" aria-label="Fecha límite (opcional)"><select class="mini" id="wtPrio" aria-label="Prioridad (opcional)" style="flex:0 0 auto"><option value="">Sin prioridad</option>${PRIOR.map(([n,l])=>`<option value="${n}">${n} · ${l}</option>`).join("")}</select><button class="btn" data-act="addWTask">Añadir</button></div></section>
+<section class="block"><div class="list">${pend.length?pend.map(row).join(""):`<div class="empty-state">Nada pendiente.</div>`}</div>
+${done.length?`<button class="linkbtn" style="margin-top:10px" data-act="showWDone">${S.showWDone?"Ocultar":"Ver"} hechas (${done.length})</button>${S.showWDone?`<div class="list" style="margin-top:8px">${done.slice(0,40).map(row).join("")}</div>`:""}`:""}</section>`;
+  return html;
+}
+function viewTrabajo(){
+  let html=`<section class="block"><div class="seg"><button class="${S.workSeg==="imputacion"?"on":""}" data-act="wseg" data-v="imputacion">Imputación</button><button class="${S.workSeg==="tareas"?"on":""}" data-act="wseg" data-v="tareas">Tareas</button></div></section>`;
+  html+=S.workSeg==="imputacion"?viewImputacion():viewWTasks();
+  return html;
+}
+
 function render(){
   renderNav();renderTop();
   const v=document.getElementById("view");
-  v.innerHTML={hoy:viewHoy,stats:viewStats,dinero:viewDinero,planes:viewPlanes,hitos:viewHitos}[S.tab]();
+  v.innerHTML={hoy:viewHoy,stats:viewStats,dinero:viewDinero,planes:viewPlanes,hitos:viewHitos,trabajo:viewTrabajo}[S.tab]();
 }
 
 /* ---------- actions ---------- */
 const val=id=>{const el=document.getElementById(id);return el?el.value.trim():""};
 const ACT={
-  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;render();window.scrollTo(0,0)},
+  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;S.editEntry=null;render();window.scrollTo(0,0)},
   dayNav:t=>{const n=addDays(S.date,+t.dataset.v);if(n<=todayISO()){S.date=n;render()}},
   goToday:()=>{S.date=todayISO();render()},
   openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
@@ -708,7 +782,25 @@ const ACT={
     S.editMs=null;persist("meta");render()},
   exportBackup:()=>exportBackup(),
   importBackup:()=>document.getElementById("importFile").click(),
-  delMs:t=>{S.meta={...S.meta,milestones:S.meta.milestones.filter(m=>m.id!==t.dataset.id)};S.editMs=null;persist("meta");render()}
+  delMs:t=>{S.meta={...S.meta,milestones:S.meta.milestones.filter(m=>m.id!==t.dataset.id)};S.editMs=null;persist("meta");render()},
+  wseg:t=>{S.workSeg=t.dataset.v;render()},
+  wnav:t=>{const n=addDays(S.workDate,+t.dataset.v);if(n<=todayISO()){S.workDate=n;render()}},
+  wtoday:()=>{S.workDate=todayISO();render()},
+  editEntry:t=>{S.editEntry=t.dataset.id;render()},
+  cancelEntry:()=>{S.editEntry=null;render()},
+  saveEntry:t=>{const text=val("wText"),hours=parseFloat(val("wHours").replace(",","."));if(!text||isNaN(hours))return alertField(!text?"wText":"wHours");
+    const id=t.dataset.id;
+    if(id)S.work={...S.work,entries:S.work.entries.map(e=>e.id===id?{...e,text,project:val("wProject"),hours}:e)};
+    else S.work={...S.work,entries:[...S.work.entries,{id:rid(),date:S.workDate,text,project:val("wProject"),hours}]};
+    S.editEntry=null;persist("work");render()},
+  delEntry:t=>{S.work={...S.work,entries:S.work.entries.filter(e=>e.id!==t.dataset.id)};S.editEntry=null;persist("work");render()},
+  addWTask:()=>{const text=val("wtText");if(!text)return alertField("wtText");
+    const prioRaw=val("wtPrio"),priority=prioRaw===""?null:+prioRaw;
+    S.work={...S.work,tasks:[...S.work.tasks,{id:rid(),text,due:val("wtDue"),priority,done:false,doneAt:"",createdAt:todayISO()}]};
+    persist("work");render();document.getElementById("wtText")?.focus()},
+  doneWTask:t=>{S.work={...S.work,tasks:S.work.tasks.map(x=>x.id===t.dataset.id?{...x,done:!x.done,doneAt:!x.done?todayISO():""}:x)};persist("work");render()},
+  delWTask:t=>{S.work={...S.work,tasks:S.work.tasks.filter(x=>x.id!==t.dataset.id)};persist("work");render()},
+  showWDone:()=>{S.showWDone=!S.showWDone;render()}
 };
 function alertField(id){const el=document.getElementById(id);if(el){el.style.outline="2px solid var(--red)";el.focus();setTimeout(()=>el.style.outline="",1500)}}
 const IN={
