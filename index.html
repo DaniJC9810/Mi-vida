@@ -406,7 +406,7 @@ const TABS=[
   ["hitos","Hitos",'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>']
 ];
 function renderNav(){document.getElementById("nav").innerHTML=TABS.map(([k,l,ic])=>`<button data-act="tab" data-tab="${k}" class="${S.tab===k?"on":""}" aria-current="${S.tab===k?"page":"false"}"><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join("")}
-function syncText(){return `<span class="sync cloud"><i></i>Se guarda solo en este dispositivo</span>`}
+function syncText(){return `<span class="sync cloud"><i></i>Guardado en tu iPhone</span>`}
 function renderSync(){document.querySelectorAll("[data-sync]").forEach(el=>el.innerHTML=syncText())}
 
 function renderTop(){
