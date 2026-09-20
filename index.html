@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mi vida</title>
-<meta name="theme-color" content="#CFE5EE">
+<meta name="theme-color" content="#D3E9E2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,9 +17,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#EDF3F4; --surface:#FFFFFF; --surface-2:#F4F8F9; --ink:#15303E; --ink-2:#56707D; --line:#D5E2E7;
-  --sea:#2E7394; --sea-deep:#1A4A62; --sea-soft:#D2E6EE; --sand:#E8D9BF; --red:#C8202F; --red-soft:#F8DDDF; --white:#FFFFFF;
-  --sky1:#CFE5EE; --sky2:#F5E8D8; --sun:#F2C593; --city:#A9BFC6; --island:#6E8A93; --hills:#8FA7AE; --sea1:#5E9DB8; --sea2:#2B6886; --wave:rgba(255,255,255,.35);
+  --bg:#EAF3F0; --surface:#FFFFFF; --surface-2:#F2F8F6; --ink:#173430; --ink-2:#547069; --line:#D4E6E0;
+  --sea:#2E8577; --sea-deep:#1A5449; --sea-soft:#D3ECE3; --sand:#E8DDC0; --red:#C8202F; --red-soft:#F8DDDF; --white:#FFFFFF;
+  --sky1:#D3E9E2; --sky2:#F3E9D6; --sun:#F0CA95; --city:#A0C1B7; --island:#5E8B7C; --hills:#89AB9C; --sea1:#4FA093; --sea2:#1F6E60; --wave:rgba(255,255,255,.35);
   --serif:"Young Serif", Georgia, "Times New Roman", serif;
   --sans:"Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --stripes:repeating-linear-gradient(90deg,var(--red) 0 5px,var(--white) 5px 10px);
@@ -29,15 +29,15 @@
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0B1D29; --surface:#11283A; --surface-2:#153044; --ink:#E3EDF1; --ink-2:#93AEBB; --line:#21425A;
-    --sea:#6BB0CF; --sea-deep:#A7D3E5; --sea-soft:#1B3D55; --sand:#4A4331; --red:#E2474F; --red-soft:#3B1E26; --white:#F2F4F5;
-    --sky1:#0E2438; --sky2:#27405A; --sun:#E9E3C9; --city:#2C4A60; --island:#1E3A4E; --hills:#233F54; --sea1:#1B4460; --sea2:#0D2638; --wave:rgba(255,255,255,.12);
+    --bg:#0B231D; --surface:#112B23; --surface-2:#15342A; --ink:#E1EFE9; --ink-2:#8FB3A6; --line:#20493D;
+    --sea:#63C0AA; --sea-deep:#9CDCC7; --sea-soft:#1B4438; --sand:#463F2E; --red:#E2474F; --red-soft:#3B1E26; --white:#F2F4F5;
+    --sky1:#0E2A22; --sky2:#2A4536; --sun:#E7DFC5; --city:#2A5245; --island:#1D4436; --hills:#25473A; --sea1:#1D5148; --sea2:#0C2C24; --wave:rgba(255,255,255,.12);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0B1D29; --surface:#11283A; --surface-2:#153044; --ink:#E3EDF1; --ink-2:#93AEBB; --line:#21425A;
-  --sea:#6BB0CF; --sea-deep:#A7D3E5; --sea-soft:#1B3D55; --sand:#4A4331; --red:#E2474F; --red-soft:#3B1E26; --white:#F2F4F5;
-  --sky1:#0E2438; --sky2:#27405A; --sun:#E9E3C9; --city:#2C4A60; --island:#1E3A4E; --hills:#233F54; --sea1:#1B4460; --sea2:#0D2638; --wave:rgba(255,255,255,.12);
+  --bg:#0B231D; --surface:#112B23; --surface-2:#15342A; --ink:#E1EFE9; --ink-2:#8FB3A6; --line:#20493D;
+  --sea:#63C0AA; --sea-deep:#9CDCC7; --sea-soft:#1B4438; --sand:#463F2E; --red:#E2474F; --red-soft:#3B1E26; --white:#F2F4F5;
+  --sky1:#0E2A22; --sky2:#2A4536; --sun:#E7DFC5; --city:#2A5245; --island:#1D4436; --hills:#25473A; --sea1:#1D5148; --sea2:#0C2C24; --wave:rgba(255,255,255,.12);
 }
 *{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
@@ -204,7 +204,7 @@ select.mini{border:1px solid var(--line);background:var(--surface-2);border-radi
 
 /* Nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:10}
-nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
+nav.tabs .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(7,1fr)}
 nav.tabs button{border:0;background:none;padding:9px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-2);position:relative}
 nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button.on{color:var(--ink)}
@@ -262,17 +262,19 @@ const DEF={
   finance:{income:0,items:[],goals:[]},
   plans:{tasks:[],ideas:[]},
   work:{entries:[],tasks:[]},
+  emotional:{entries:[]},
   meta:{stepGoal:10000,gymWeek:4,milestones:[],reviews:{}}
 };
 const S={
-  days:{},finance:clone(DEF.finance),plans:clone(DEF.plans),work:clone(DEF.work),meta:clone(DEF.meta),
+  days:{},finance:clone(DEF.finance),plans:clone(DEF.plans),work:clone(DEF.work),emotional:clone(DEF.emotional),meta:clone(DEF.meta),
   tab:"hoy",date:todayISO(),period:"mes",anchor:todayISO(),finMonth:ymOf(new Date()),
   planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null,editMs:null,
-  workSeg:"imputacion",workDate:todayISO(),editEntry:null,showWDone:false
+  workSeg:"imputacion",workDate:todayISO(),editEntry:null,showWDone:false,
+  emoFilter:"Todas",editEmo:null
 };
 const LS="mivida.v1";
-function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
-function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({days:S.days,finance:S.finance,plans:S.plans,work:S.work,meta:S.meta}))}catch(e){}}
+function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.emotional={...clone(DEF.emotional),...o.emotional};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({days:S.days,finance:S.finance,plans:S.plans,work:S.work,emotional:S.emotional,meta:S.meta}))}catch(e){}}
 
 const emptyDay=()=>({gym:false,diet:false,steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null},mood:null,note:""});
 function getDay(id){const d=S.days[id];if(!d)return emptyDay();const e=emptyDay();return {...e,...d,place:{...e.place,...(d.place||{})}}}
@@ -288,7 +290,7 @@ document.addEventListener("focusout",()=>{setTimeout(()=>{if(pendingRender&&!typ
 
 /* ---------- copia de seguridad ---------- */
 async function exportBackup(){
-  const data={app:"mi-vida",version:1,exportedAt:new Date().toISOString(),days:S.days,finance:S.finance,plans:S.plans,work:S.work,meta:S.meta};
+  const data={app:"mi-vida",version:1,exportedAt:new Date().toISOString(),days:S.days,finance:S.finance,plans:S.plans,work:S.work,emotional:S.emotional,meta:S.meta};
   const name=`mi-vida-copia-${todayISO()}.json`;
   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
   const file=new File([blob],name,{type:"application/json"});
@@ -305,7 +307,7 @@ function importBackup(file){
       const o=JSON.parse(r.result);
       if(!o||o.app!=="mi-vida")throw new Error("El archivo no es una copia de Mi vida.");
       if(!confirm("Se sustituirán los datos de este dispositivo por los de la copia. ¿Continuar?"))return;
-      S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.meta={...clone(DEF.meta),...o.meta};
+      S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.emotional={...clone(DEF.emotional),...o.emotional};S.meta={...clone(DEF.meta),...o.meta};
       saveLocal();render();alert("Copia importada.");
     }catch(e){alert("No se ha podido importar: "+e.message)}
   };
@@ -320,7 +322,7 @@ function seaSVG(h,compact){
 <defs><linearGradient id="skyc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sk1"/><stop offset="1" class="sk2"/></linearGradient>
 <linearGradient id="watc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sw1"/><stop offset="1" class="sw2"/></linearGradient></defs>
 <rect width="400" height="84" fill="url(#skyc)"/>
-<path class="f-island" d="M300 ${Y} L322 ${Y-24} L327 ${Y-23} L333 ${Y-17} L364 ${Y}Z"/>
+<path class="f-island" d="M300 ${Y} C305 ${Y-3} 309 ${Y-13} 318 ${Y-17} C325 ${Y-19} 330 ${Y-12} 336 ${Y-10} C343 ${Y-8} 349 ${Y-4} 364 ${Y}Z"/>
 <rect y="${Y}" width="400" height="30" fill="url(#watc)"/>
 ${waves(Y+8,"slow",.8)}</svg>`;
   }
@@ -336,7 +338,7 @@ ${waves(Y+8,"slow",.8)}</svg>`;
 <circle class="f-sun" cx="322" cy="${Y-26}" r="15"/>
 <path class="f-hills" d="M338 ${Y} Q362 ${Y-26} 400 ${Y-22} V${Y}Z"/>
 ${towers}
-<path class="f-island" d="M212 ${Y} L246 ${Y-40} L253 ${Y-38} L261 ${Y-30} L306 ${Y}Z"/>
+<path class="f-island" d="M212 ${Y} C221 ${Y-5} 229 ${Y-20} 247 ${Y-26} C260 ${Y-30} 268 ${Y-19} 280 ${Y-15} C291 ${Y-12} 298 ${Y-6} 306 ${Y}Z"/>
 <rect y="${Y}" width="400" height="${210-Y}" fill="url(#wat)"/>
 <g class="s-sun" stroke-width="2" stroke-linecap="round" opacity=".55"><line x1="308" x2="336" y1="${Y+8}" y2="${Y+8}"/><line x1="314" x2="330" y1="${Y+16}" y2="${Y+16}"/><line x1="318" x2="326" y1="${Y+24}" y2="${Y+24}"/></g>
 ${waves(Y+20,"slow",.7)}${waves(Y+44,"",.9)}
@@ -435,7 +437,8 @@ const TABS=[
   ["dinero","Dinero",'<rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/>'],
   ["planes","Planes",'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>'],
   ["hitos","Hitos",'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'],
-  ["trabajo","Trabajo",'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>']
+  ["trabajo","Trabajo",'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 12h18"/>'],
+  ["emocional","Emoción",'<path d="M12 20s-7-4.4-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 5c-2.5 4.6-9.5 9-9.5 9Z"/>']
 ];
 function renderNav(){document.getElementById("nav").innerHTML=TABS.map(([k,l,ic])=>`<button data-act="tab" data-tab="${k}" class="${S.tab===k?"on":""}" aria-current="${S.tab===k?"page":"false"}"><svg viewBox="0 0 24 24">${ic}</svg>${l}</button>`).join("")}
 function syncText(){return `<span class="sync cloud"><i></i>Guardado en tu iPhone</span>`}
@@ -448,7 +451,7 @@ function renderTop(){
     const d=new Date();
     top.innerHTML=`<div class="hero">${seaSVG()}<div class="greet"><div class="hello">${hi}, Dani</div><h1>${cap(DIAS[d.getDay()])} ${d.getDate()} de ${MESL[d.getMonth()]}</h1></div></div>`;
   }else{
-    const t={stats:"Estadísticas",dinero:"Dinero",planes:"Planes",hitos:"Hitos",trabajo:"Trabajo"}[S.tab];
+    const t={stats:"Estadísticas",dinero:"Dinero",planes:"Planes",hitos:"Hitos",trabajo:"Trabajo",emocional:"Emocional"}[S.tab];
     top.innerHTML=`<div class="band">${seaSVG(0,true)}<h1>${t}</h1></div>`;
   }
 }
@@ -715,8 +718,8 @@ function viewWTasks(){
   const pend=S.work.tasks.filter(x=>!x.done).sort((a,b)=>(b.priority??-1)-(a.priority??-1)||(a.due||"9999").localeCompare(b.due||"9999"));
   const done=S.work.tasks.filter(x=>x.done).sort((a,b)=>(b.doneAt||"").localeCompare(a.doneAt||""));
   const prioTag=p=>p==null?"":`<span class="tag ${p>=4?"red":""}">${esc(PRIOR[p][1])}</span>`;
-  const row=x=>`<div class="task ${x.done?"done":""}"><button class="cb ${x.done?"on":""}" data-act="doneWTask" data-id="${x.id}" aria-label="Marcar como hecha">✓</button><div class="grow"><span>${esc(x.text)}</span><div class="row" style="gap:8px;margin-top:4px">${x.due&&!x.done?`<span class="due ${x.due<t?"late":""}">${x.due<t?"Vencida · ":""}${looseLabel(x.due)}</span>`:""}${!x.done?prioTag(x.priority):""}</div></div><button class="x" data-act="delWTask" data-id="${x.id}" aria-label="Borrar">×</button></div>`;
-  let html=`<section class="block"><div class="field" style="margin-top:0;flex-wrap:wrap"><input id="wtText" placeholder="Nueva tarea" data-enter="addWTask" style="flex:1 1 160px"><input id="wtDue" type="date" style="flex:0 0 auto;width:auto;font-size:13px;color:var(--ink-2)" aria-label="Fecha límite (opcional)"><select class="mini" id="wtPrio" aria-label="Prioridad (opcional)" style="flex:0 0 auto"><option value="">Sin prioridad</option>${PRIOR.map(([n,l])=>`<option value="${n}">${n} · ${l}</option>`).join("")}</select><button class="btn" data-act="addWTask">Añadir</button></div></section>
+  const row=x=>`<div class="task ${x.done?"done":""}"><button class="cb ${x.done?"on":""}" data-act="doneWTask" data-id="${x.id}" aria-label="Marcar como hecha">✓</button><div class="grow"><span>${esc(x.text)}</span><div class="row wrap" style="gap:8px;margin-top:4px">${x.project?`<span class="tag">${esc(x.project)}</span>`:""}${x.due&&!x.done?`<span class="due ${x.due<t?"late":""}">${x.due<t?"Vencida · ":""}${looseLabel(x.due)}</span>`:""}${!x.done?prioTag(x.priority):""}</div></div><button class="x" data-act="delWTask" data-id="${x.id}" aria-label="Borrar">×</button></div>`;
+  let html=`<section class="block"><div class="field" style="margin-top:0;flex-wrap:wrap"><input id="wtText" placeholder="Nueva tarea" data-enter="addWTask" style="flex:1 1 160px"><select class="mini" id="wtProject" aria-label="Proyecto (opcional)" style="flex:0 0 auto"><option value="">Sin proyecto</option>${PROJECTS.map(p=>`<option>${esc(p)}</option>`).join("")}</select><input id="wtDue" type="date" style="flex:0 0 auto;width:auto;font-size:13px;color:var(--ink-2)" aria-label="Fecha límite (opcional)"><select class="mini" id="wtPrio" aria-label="Prioridad (opcional)" style="flex:0 0 auto"><option value="">Sin prioridad</option>${PRIOR.map(([n,l])=>`<option value="${n}">${n} · ${l}</option>`).join("")}</select><button class="btn" data-act="addWTask">Añadir</button></div></section>
 <section class="block"><div class="list">${pend.length?pend.map(row).join(""):`<div class="empty-state">Nada pendiente.</div>`}</div>
 ${done.length?`<button class="linkbtn" style="margin-top:10px" data-act="showWDone">${S.showWDone?"Ocultar":"Ver"} hechas (${done.length})</button>${S.showWDone?`<div class="list" style="margin-top:8px">${done.slice(0,40).map(row).join("")}</div>`:""}`:""}</section>`;
   return html;
@@ -727,16 +730,34 @@ function viewTrabajo(){
   return html;
 }
 
+const EMO_TYPES=["Aprendizaje","Lema","Frase"];
+function viewEmocional(){
+  const f=S.emoFilter;
+  const list=S.emotional.entries.filter(e=>f==="Todas"||e.type===f).slice().reverse();
+  let html=`<section class="block"><div class="card"><div class="form" style="margin-top:0"><textarea class="plain" id="eoText" placeholder="Un aprendizaje, lema o frase que quieras recordar"></textarea><div class="row"><select class="plain" id="eoType" style="flex:1">${EMO_TYPES.map(t=>`<option>${t}</option>`).join("")}</select><button class="btn" data-act="addEmo">Añadir</button></div></div></div>
+<div class="chips">${["Todas",...EMO_TYPES].map(c=>`<button class="chip small ${f===c?"on":""}" data-act="emoFilter" data-v="${c}">${c}</button>`).join("")}</div></section>`;
+  if(!list.length){
+    html+=`<div class="card empty-state" style="margin-top:14px">Guarda aquí los aprendizajes, lemas y frases que quieras tener siempre a mano.</div>`;
+  }else{
+    html+=list.map(e=>{
+      if(S.editEmo===e.id)return `<div class="idea"><div class="top"><div class="grow"><textarea class="plain" id="eoEditText">${esc(e.text)}</textarea><select class="plain" id="eoEditType" style="margin-top:8px">${EMO_TYPES.map(t=>`<option ${e.type===t?"selected":""}>${t}</option>`).join("")}</select><div class="row" style="margin-top:8px"><button class="btn" data-act="saveEmo" data-id="${e.id}">Guardar</button><button class="btn ghost" data-act="editEmo" data-id="">Cancelar</button><button class="btn danger" data-act="delEmo" data-id="${e.id}" style="margin-left:auto">Borrar</button></div></div></div></div>`;
+      return `<div class="idea"><button data-act="editEmo" data-id="${e.id}" style="border:0;background:none;padding:0;text-align:left;width:100%"><span style="white-space:pre-wrap">${esc(e.text)}</span></button>
+<div class="row between" style="margin-top:10px"><span class="tag ${e.type==="Lema"?"red":""}">${esc(e.type)}</span><span class="sub">${looseLabel(e.createdAt)}</span></div></div>`;
+    }).join("");
+  }
+  return html;
+}
+
 function render(){
   renderNav();renderTop();
   const v=document.getElementById("view");
-  v.innerHTML={hoy:viewHoy,stats:viewStats,dinero:viewDinero,planes:viewPlanes,hitos:viewHitos,trabajo:viewTrabajo}[S.tab]();
+  v.innerHTML={hoy:viewHoy,stats:viewStats,dinero:viewDinero,planes:viewPlanes,hitos:viewHitos,trabajo:viewTrabajo,emocional:viewEmocional}[S.tab]();
 }
 
 /* ---------- actions ---------- */
 const val=id=>{const el=document.getElementById(id);return el?el.value.trim():""};
 const ACT={
-  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;S.editEntry=null;render();window.scrollTo(0,0)},
+  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;S.editEntry=null;S.editEmo=null;render();window.scrollTo(0,0)},
   dayNav:t=>{const n=addDays(S.date,+t.dataset.v);if(n<=todayISO()){S.date=n;render()}},
   goToday:()=>{S.date=todayISO();render()},
   openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
@@ -796,11 +817,20 @@ const ACT={
   delEntry:t=>{S.work={...S.work,entries:S.work.entries.filter(e=>e.id!==t.dataset.id)};S.editEntry=null;persist("work");render()},
   addWTask:()=>{const text=val("wtText");if(!text)return alertField("wtText");
     const prioRaw=val("wtPrio"),priority=prioRaw===""?null:+prioRaw;
-    S.work={...S.work,tasks:[...S.work.tasks,{id:rid(),text,due:val("wtDue"),priority,done:false,doneAt:"",createdAt:todayISO()}]};
+    S.work={...S.work,tasks:[...S.work.tasks,{id:rid(),text,due:val("wtDue"),priority,project:val("wtProject")||null,done:false,doneAt:"",createdAt:todayISO()}]};
     persist("work");render();document.getElementById("wtText")?.focus()},
   doneWTask:t=>{S.work={...S.work,tasks:S.work.tasks.map(x=>x.id===t.dataset.id?{...x,done:!x.done,doneAt:!x.done?todayISO():""}:x)};persist("work");render()},
   delWTask:t=>{S.work={...S.work,tasks:S.work.tasks.filter(x=>x.id!==t.dataset.id)};persist("work");render()},
-  showWDone:()=>{S.showWDone=!S.showWDone;render()}
+  showWDone:()=>{S.showWDone=!S.showWDone;render()},
+  emoFilter:t=>{S.emoFilter=t.dataset.v;render()},
+  addEmo:()=>{const text=val("eoText");if(!text)return alertField("eoText");
+    S.emotional={...S.emotional,entries:[...S.emotional.entries,{id:rid(),text,type:val("eoType")||EMO_TYPES[0],createdAt:todayISO()}]};
+    persist("emotional");render()},
+  editEmo:t=>{S.editEmo=t.dataset.id||null;render()},
+  saveEmo:t=>{const text=val("eoEditText");if(!text)return alertField("eoEditText");
+    S.emotional={...S.emotional,entries:S.emotional.entries.map(e=>e.id===t.dataset.id?{...e,text,type:val("eoEditType")}:e)};
+    S.editEmo=null;persist("emotional");render()},
+  delEmo:t=>{S.emotional={...S.emotional,entries:S.emotional.entries.filter(e=>e.id!==t.dataset.id)};S.editEmo=null;persist("emotional");render()}
 };
 function alertField(id){const el=document.getElementById(id);if(el){el.style.outline="2px solid var(--red)";el.focus();setTimeout(()=>el.style.outline="",1500)}}
 const IN={
