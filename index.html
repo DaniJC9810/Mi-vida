@@ -564,19 +564,28 @@ ${ring(gym/gymTarget,"Entreno",`${gym} de ${gymTarget}`)}${ring(diet/logged.leng
   const pc={};D.forEach(d=>d.people.forEach(p=>{pc[p]=(pc[p]||0)+1}));const topP=Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const moods=D.filter(d=>d.mood).map(d=>d.mood);const mAvg=moods.length?moods.reduce((a,b)=>a+b,0)/moods.length:0;
   let socialMonth="";if(S.period==="año"){const mc=Array(12).fill(0);logged.forEach(id=>{const g=getDay(id);if(g.friends||g.social)mc[+id.slice(5,7)-1]++});const mi=mc.indexOf(Math.max(...mc));if(mc[mi])socialMonth=cap(MESL[mi])}
+  const watched=logged.map(id=>({id,...getDay(id).watch})).filter(w=>w.seen);
+  const watchRated=watched.filter(w=>w.rating);
+  const watchAvg=watchRated.length?watchRated.reduce((s,w)=>s+w.rating,0)/watchRated.length:0;
+  const topWatch=watchRated.slice().sort((a,b)=>b.rating-a.rating)[0];
   const title=S.period==="año"?`Tu ${R.label}`:S.period==="mes"?`Tu ${MESL[parseISO(R.start).getMonth()]}`:"Tu semana";
   html+=`<section class="block"><h2>${title}</h2><div class="facts">
 <div class="fact"><b>${gym}</b><span>entrenos</span></div>
 <div class="fact"><b>${sc["Fútbol"]||0}</b><span>partidos de fútbol</span></div>
 <div class="fact"><b>${D.filter(d=>(d.steps||0)>=10000).length}</b><span>días de 10k pasos</span></div>
 <div class="fact"><b>${mAvg?mAvg.toFixed(1):"–"}</b><span>nota media del día</span></div>
+<div class="fact"><b>${watched.length}</b><span>pelis o series</span></div>
+<div class="fact"><b>${watchAvg?watchAvg.toFixed(1):"–"}</b><span>nota media peli/serie</span></div>
 <div class="fact wide"><b>${newPlaces.length} sitio${newPlaces.length!==1?"s":""} nuevo${newPlaces.length!==1?"s":""}</b><span>${newPlaces.length?esc(newPlaces.slice(0,6).join(", "))+(newPlaces.length>6?"…":""):"Ninguno todavía"}</span></div>
 ${top?`<div class="fact wide"><b>${esc(top.name)}</b><span>tu mejor sitio${top.avg?` · ${top.avg.toFixed(1)} ★`:""}${top.n>1?` · ${top.n} visitas`:""}</span></div>`:""}
+${topWatch?`<div class="fact wide"><b>${esc(topWatch.name||"Sin título")}</b><span>tu favorita · ${topWatch.rating}/10</span></div>`:""}
 ${topP.length?`<div class="fact wide"><b>${esc(topP.map(p=>p[0]).join(", "))}</b><span>con quien más has quedado</span></div>`:""}
 ${socialMonth?`<div class="fact wide"><b>${socialMonth}</b><span>tu mes más social</span></div>`:""}
 </div></section>`;
+  // pelis y series
+  if(watched.length)html+=`<section class="block"><h2>Películas y series</h2><div class="list">${watched.slice().sort((a,b)=>b.id.localeCompare(a.id)).map(w=>`<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="openDay" data-v="${w.id}"><div class="grow">${esc(w.name||"Sin título")}<small>${parseISO(w.id).getDate()} ${MES[parseISO(w.id).getMonth()]}${w.note?` · ${esc(w.note)}`:""}</small></div><span class="v">${w.rating?`${w.rating}/10`:"–"}</span></button>`).join("")}</div></section>`;
   // hace cuánto
-  const last={};Object.keys(S.days).sort().forEach(id=>{const g=getDay(id);g.people.forEach(p=>last["Ver a "+p]=id);if(g.sports.includes("Fútbol"))last["Jugar al fútbol"]=id;if(g.gym)last["Entrenar"]=id;if(g.friends||g.social)last["Plan social"]=id});
+  const last={};Object.keys(S.days).sort().forEach(id=>{const g=getDay(id);g.people.forEach(p=>last["Ver a "+p]=id);if(g.sports.includes("Fútbol"))last["Jugar al fútbol"]=id;if(g.gym)last["Entrenar"]=id;if(g.friends||g.social)last["Plan social"]=id;if(g.watch.seen)last["Ver una peli o serie"]=id});
   Object.values(pi.first).forEach(id=>{if(!last["Ir a un sitio nuevo"]||id>last["Ir a un sitio nuevo"])last["Ir a un sitio nuevo"]=id});
   const ago=Object.entries(last).map(([k,d])=>[k,daysBetween(d,t)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
   if(ago.length)html+=`<section class="block"><h2>Hace cuánto que no…</h2><div class="list">${ago.map(([k,n])=>`<div class="li"><div class="grow">${esc(k)}</div><span class="v ${n>21?"":"muted"}" style="${n>21?"color:var(--red)":""}">${agoText(n)}</span></div>`).join("")}</div></section>`;
