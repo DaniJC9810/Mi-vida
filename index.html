@@ -266,7 +266,7 @@ const DEF={
 const S={
   days:{},finance:clone(DEF.finance),plans:clone(DEF.plans),meta:clone(DEF.meta),
   tab:"hoy",date:todayISO(),period:"mes",anchor:todayISO(),finMonth:ymOf(new Date()),
-  planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null
+  planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null,editMs:null
 };
 const LS="mivida.v1";
 function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
@@ -390,8 +390,16 @@ function periodRange(){
   const days=[];for(let d=start;d<=end;d=addDays(d,1))days.push(d);
   return {start,end,label,days};
 }
+const monthsBetween=(a,b)=>{const [ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number);return (by-ay)*12+(bm-am)};
+function itemDueAt(it,ym){
+  if(it.start&&it.start>ym)return false;
+  if(it.end&&ym>it.end)return false;
+  const every=it.every||1;
+  if(every>1){const diff=monthsBetween(it.start||ym,ym);if(diff<0||diff%every!==0)return false}
+  return true;
+}
 function financeAt(ym){
-  const act=S.finance.items.filter(it=>(!it.start||it.start<=ym)&&(!it.end||ym<=it.end));
+  const act=S.finance.items.filter(it=>itemDueAt(it,ym));
   const fixed=act.filter(i=>i.kind!=="ahorro").reduce((s,i)=>s+(+i.amount||0),0);
   const save=act.filter(i=>i.kind==="ahorro").reduce((s,i)=>s+(+i.amount||0),0);
   return {act,fixed,save,free:(+S.finance.income||0)-fixed-save};
@@ -527,15 +535,19 @@ ${socialMonth?`<div class="fact wide"><b>${socialMonth}</b><span>tu mes más soc
   return html;
 }
 
+const EVERY=[[1,"Cada mes"],[2,"Cada 2 meses"],[3,"Cada 3 meses"],[4,"Cada 4 meses"],[6,"Cada 6 meses"],[12,"1 vez al año"]];
 function itemForm(it){
-  it=it||{name:"",amount:"",kind:"fijo",cat:"Vivienda",start:"",end:""};
-  const cats=["Vivienda","Préstamo","Suscripción","Transporte","Seguros","Gimnasio","Otros"];
+  it=it||{name:"",amount:"",kind:"fijo",cat:"Vivienda",every:1,start:"",end:""};
+  const cats=["Vivienda","Préstamo","Suscripción","Transporte","Seguros","Salud","Gimnasio","Otros"];
+  const every=it.every||1;
   return `<div class="form">
 <label>Nombre<input class="plain" id="fName" value="${esc(it.name)}" placeholder="Ej. Préstamo coche"></label>
-<div class="two"><label>Importe al mes<input class="plain" id="fAmount" type="number" inputmode="decimal" step="0.01" value="${it.amount}"></label>
+<div class="two"><label>Importe<input class="plain" id="fAmount" type="number" inputmode="decimal" step="0.01" value="${it.amount}"></label>
 <label>Tipo<select class="plain" id="fKind"><option value="fijo" ${it.kind!=="ahorro"?"selected":""}>Gasto fijo</option><option value="ahorro" ${it.kind==="ahorro"?"selected":""}>Ahorro</option></select></label></div>
-<label>Categoría<select class="plain" id="fCat">${cats.map(c=>`<option ${it.cat===c?"selected":""}>${c}</option>`).join("")}</select></label>
-<div class="two"><label>Desde (opcional)<input class="plain" id="fStart" type="month" value="${it.start||""}"></label><label>Hasta, último mes (opcional)<input class="plain" id="fEnd" type="month" value="${it.end||""}"></label></div>
+<div class="two"><label>Categoría<select class="plain" id="fCat">${cats.map(c=>`<option ${it.cat===c?"selected":""}>${c}</option>`).join("")}</select></label>
+<label>Repite<select class="plain" id="fEvery">${EVERY.map(([n,l])=>`<option value="${n}" ${every===n?"selected":""}>${l}</option>`).join("")}</select></label></div>
+<div class="two"><label>Desde${every>1?" (mes del próximo pago)":" (opcional)"}<input class="plain" id="fStart" type="month" value="${it.start||""}"></label><label>Hasta, último mes (opcional)<input class="plain" id="fEnd" type="month" value="${it.end||""}"></label></div>
+<p class="sub" style="margin:0 0 4px">${every>1?`Se descuenta cada ${every} meses, empezando en el mes "Desde".`:"Se descuenta todos los meses."}</p>
 <div class="row"><button class="btn" data-act="saveItem" data-id="${it.id||""}">${it.id?"Guardar cambios":"Añadir"}</button>${it.id?`<button class="btn ghost" data-act="cancelItem">Cancelar</button><button class="btn danger" data-act="delItem" data-id="${it.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
 }
 function viewDinero(){
@@ -548,9 +560,14 @@ function viewDinero(){
 <div class="field"><label for="inc">Ingresos netos al mes</label><input id="inc" type="number" inputmode="decimal" step="0.01" value="${inc||""}" placeholder="0" data-ch="income"><span class="sub" style="padding-right:10px">€</span></div></section>`;
   const items=S.finance.items.slice().sort((a,b)=>(b.amount||0)-(a.amount||0));
   const shown=S.showAllItems?items:F.act;
-  const row=it=>{const on=F.act.includes(it);const when=!on?(it.start&&it.start>m?`empieza ${ymLabel(it.start)}`:`terminó ${ymLabel(it.end)}`):(it.end?`hasta ${ymLabel(it.end)}`:"sin fecha de fin");
+  const row=it=>{const on=F.act.includes(it),every=it.every||1;let when;
+    if(on)when=it.end?`hasta ${ymLabel(it.end)}`:"sin fecha de fin";
+    else if(it.start&&it.start>m)when=`empieza ${ymLabel(it.start)}`;
+    else if(it.end&&m>it.end)when=`terminó ${ymLabel(it.end)}`;
+    else{const diff=monthsBetween(it.start||m,m),rem=((diff%every)+every)%every;when=`próximo pago ${ymLabel(addMonths(m,every-rem))}`}
+    const freq=every>1?`cada ${every} meses · `:"";
     if(S.editItem===it.id)return `<div class="li" style="display:block">${itemForm(it)}</div>`;
-    return `<button class="li ${on?"":"off"}" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="editItem" data-id="${it.id}"><div class="grow">${esc(it.name)}<small>${esc(it.cat||"")} · ${when}</small></div><span class="v">${eur(+it.amount)}</span></button>`};
+    return `<button class="li ${on?"":"off"}" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="editItem" data-id="${it.id}"><div class="grow">${esc(it.name)}<small>${esc(it.cat||"")} · ${freq}${when}</small></div><span class="v">${eur(+it.amount)}</span></button>`};
   const fij=shown.filter(i=>i.kind!=="ahorro"),sav=shown.filter(i=>i.kind==="ahorro");
   html+=`<section class="block"><div class="row between"><h2>Gastos fijos</h2><button class="linkbtn" data-act="allItems">${S.showAllItems?"Solo este mes":"Ver todos"}</button></div>
 <div class="list">${fij.length?fij.map(row).join(""):`<div class="empty-state">Sin gastos fijos este mes.</div>`}</div></section>
@@ -560,7 +577,9 @@ function viewDinero(){
   const now=ymOf(new Date());const changes=[];let prev=financeAt(now);
   const vals=[prev.free],labels=[MES[+now.slice(5)-1]];
   for(let i=1;i<=60;i++){const mm=addMonths(now,i);const f=financeAt(mm);vals.push(f.free);labels.push(+mm.slice(5)===1?mm.slice(2,4):"");
-    if(f.free!==prev.free){const ended=prev.act.filter(x=>!f.act.includes(x)),started=f.act.filter(x=>!prev.act.includes(x));changes.push({m:mm,diff:f.free-prev.free,txt:[...ended.map(x=>`termina ${x.name}`),...started.map(x=>`empieza ${x.name}`)].join(", ")})}
+    if(f.free!==prev.free){const ended=prev.act.filter(x=>!f.act.includes(x)&&(x.every||1)===1),started=f.act.filter(x=>!prev.act.includes(x));
+      const txt=[...ended.map(x=>`termina ${x.name}`),...started.map(x=>(x.every||1)>1?`pago de ${x.name}`:`empieza ${x.name}`)].join(", ");
+      if(txt)changes.push({m:mm,diff:f.free-prev.free,txt})}
     prev=f}
   html+=`<section class="block"><h2>Próximos 5 años</h2><div class="card">${lineChart(vals,labels)}<p class="sub" style="margin:6px 0 0">Dinero libre para ocio cada mes. Los puntos rojos son cambios.</p></div>
 ${changes.length?`<div class="list" style="margin-top:10px">${changes.slice(0,8).map(c=>`<div class="li"><div class="grow">${cap(ymLabel(c.m))}<small>${esc(cap(c.txt))}</small></div><span class="v" style="color:${c.diff>0?"var(--sea)":"var(--red)"}">${c.diff>0?"+":""}${eur(c.diff)}</span></div>`).join("")}</div>`:""}</section>`;
@@ -599,6 +618,14 @@ ${ed?"":`<div class="row between" style="margin-top:10px"><span class="tag ${i.c
   return html;
 }
 
+function msForm(m){
+  m=m||{name:"",date:""};
+  const isMonth=/^\d{4}-\d{2}$/.test(m.date||""),isDay=/^\d{4}-\d{2}-\d{2}$/.test(m.date||"");
+  return `<div class="form">
+<label>Qué<input class="plain" id="mName" value="${esc(m.name)}" placeholder="Ej. Viaje a Benidorm"></label>
+<div class="two"><label>Mes<input class="plain" id="mMonth" type="month" value="${isMonth?m.date:""}"></label><label>o día exacto<input class="plain" id="mDay" type="date" value="${isDay?m.date:""}"></label></div>
+<div class="row"><button class="btn" data-act="saveMs" data-id="${m.id||""}">${m.id?"Guardar cambios":"Añadir hito"}</button>${m.id?`<button class="btn ghost" data-act="cancelMs">Cancelar</button><button class="btn danger" data-act="delMs" data-id="${m.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
+}
 function viewHitos(){
   const list=S.meta.milestones.map(m=>({...m,auto:false}));
   S.finance.items.forEach(it=>{if(it.end)list.push({name:`Último mes de ${it.name}`,date:it.end,auto:true});if(it.start&&it.start>ymOf(new Date()))list.push({name:`Empieza ${it.name}`,date:it.start,auto:true})});
@@ -607,9 +634,13 @@ function viewHitos(){
   const t=new Date();t.setHours(0,0,0,0);
   const up=list.filter(m=>countdown(m.date)!=="ya pasó").sort((a,b)=>key(a)-key(b));
   const past=list.filter(m=>countdown(m.date)==="ya pasó").sort((a,b)=>key(b)-key(a));
-  const row=m=>`<div class="li ms"><div class="grow">${esc(m.name)}<small>${looseLabel(m.date)}${m.auto?" · desde Dinero":""}</small></div><span class="when">${countdown(m.date)}</span>${m.auto?"":`<button class="x" data-act="delMs" data-id="${m.id}" aria-label="Borrar hito">×</button>`}</div>`;
+  const row=m=>{
+    if(!m.auto&&S.editMs===m.id)return `<div class="li ms" style="display:block">${msForm(m)}</div>`;
+    const body=`${esc(m.name)}<small>${looseLabel(m.date)}${m.auto?" · desde Dinero":""}</small>`;
+    return `<div class="li ms">${m.auto?`<div class="grow">${body}</div>`:`<button class="grow" data-act="editMs" data-id="${m.id}" style="border:0;background:none;padding:0;text-align:left">${body}</button>`}<span class="when">${countdown(m.date)}</span>${m.auto?"":`<button class="x" data-act="delMs" data-id="${m.id}" aria-label="Borrar hito">×</button>`}</div>`;
+  };
   let html=`<section class="block"><div class="list">${up.length?up.map(row).join(""):`<div class="empty-state">Añade fechas importantes y verás cuánto falta.</div>`}</div>
-<details style="margin-top:10px"><summary>Añadir hito</summary><div class="card"><div class="form"><label>Qué<input class="plain" id="mName" placeholder="Ej. Viaje a Benidorm"></label><div class="two"><label>Mes<input class="plain" id="mMonth" type="month"></label><label>o día exacto<input class="plain" id="mDay" type="date"></label></div><button class="btn" data-act="addMs">Añadir hito</button></div></div></details>
+<details style="margin-top:10px"><summary>Añadir hito</summary><div class="card">${S.editMs?"<p class='sub'>Termina la edición abierta primero.</p>":msForm()}</div></details>
 ${past.length?`<details style="margin-top:6px"><summary>Pasados (${past.length})</summary><div class="list">${past.map(row).join("")}</div></details>`:""}</section>
 <section class="block"><h2>Ajustes</h2><div class="card">
 <div class="field" style="margin-top:0"><label>Objetivo de pasos</label><input type="number" inputmode="numeric" step="500" value="${S.meta.stepGoal}" data-ch="stepGoal"></div>
@@ -631,7 +662,7 @@ function render(){
 /* ---------- actions ---------- */
 const val=id=>{const el=document.getElementById(id);return el?el.value.trim():""};
 const ACT={
-  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;render();window.scrollTo(0,0)},
+  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;render();window.scrollTo(0,0)},
   dayNav:t=>{const n=addDays(S.date,+t.dataset.v);if(n<=todayISO()){S.date=n;render()}},
   goToday:()=>{S.date=todayISO();render()},
   openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
@@ -652,7 +683,8 @@ const ACT={
   editItem:t=>{S.editItem=t.dataset.id;render()},
   cancelItem:()=>{S.editItem=null;render()},
   saveItem:t=>{const name=val("fName"),amount=parseFloat(val("fAmount").replace(",","."));if(!name||isNaN(amount))return alertField(!name?"fName":"fAmount");
-    const it={id:t.dataset.id||rid(),name,amount,kind:val("fKind"),cat:val("fCat"),start:val("fStart"),end:val("fEnd")};
+    const every=parseInt(val("fEvery"),10)||1,start=val("fStart");if(every>1&&!start)return alertField("fStart");
+    const it={id:t.dataset.id||rid(),name,amount,kind:val("fKind"),cat:val("fCat"),every,start,end:val("fEnd")};
     const items=S.finance.items.filter(x=>x.id!==it.id);items.push(it);S.finance={...S.finance,items};S.editItem=null;persist("finance");render()},
   delItem:t=>{S.finance={...S.finance,items:S.finance.items.filter(x=>x.id!==t.dataset.id)};S.editItem=null;persist("finance");render()},
   addGoal:()=>{const name=val("gName"),target=parseFloat(val("gTarget"));if(!name||isNaN(target))return alertField(!name?"gName":"gTarget");S.finance={...S.finance,goals:[...S.finance.goals,{id:rid(),name,target,saved:0,date:val("gDate")}]};persist("finance");render()},
@@ -667,10 +699,16 @@ const ACT={
   editIdea:t=>{S.editIdea=t.dataset.id||null;render()},
   saveIdea:t=>{const text=val("eText");if(!text)return alertField("eText");S.plans={...S.plans,ideas:S.plans.ideas.map(i=>i.id===t.dataset.id?{...i,text,note:document.getElementById("eNote").value}:i)};S.editIdea=null;persist("plans");render()},
   delIdea:t=>{S.plans={...S.plans,ideas:S.plans.ideas.filter(i=>i.id!==t.dataset.id)};S.editIdea=null;persist("plans");render()},
-  addMs:()=>{const name=val("mName"),date=val("mDay")||val("mMonth");if(!name)return alertField("mName");if(!date)return alertField("mMonth");S.meta={...S.meta,milestones:[...S.meta.milestones,{id:rid(),name,date}]};persist("meta");render()},
+  editMs:t=>{S.editMs=t.dataset.id;render()},
+  cancelMs:()=>{S.editMs=null;render()},
+  saveMs:t=>{const name=val("mName"),date=val("mDay")||val("mMonth");if(!name)return alertField("mName");if(!date)return alertField("mMonth");
+    const id=t.dataset.id;
+    if(id)S.meta={...S.meta,milestones:S.meta.milestones.map(m=>m.id===id?{...m,name,date}:m)};
+    else S.meta={...S.meta,milestones:[...S.meta.milestones,{id:rid(),name,date}]};
+    S.editMs=null;persist("meta");render()},
   exportBackup:()=>exportBackup(),
   importBackup:()=>document.getElementById("importFile").click(),
-  delMs:t=>{S.meta={...S.meta,milestones:S.meta.milestones.filter(m=>m.id!==t.dataset.id)};persist("meta");render()}
+  delMs:t=>{S.meta={...S.meta,milestones:S.meta.milestones.filter(m=>m.id!==t.dataset.id)};S.editMs=null;persist("meta");render()}
 };
 function alertField(id){const el=document.getElementById(id);if(el){el.style.outline="2px solid var(--red)";el.focus();setTimeout(()=>el.style.outline="",1500)}}
 const IN={
