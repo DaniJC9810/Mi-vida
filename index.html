@@ -268,7 +268,8 @@ const S={
   tab:"hoy",date:todayISO(),period:"mes",anchor:todayISO(),finMonth:ymOf(new Date()),
   planSeg:"corto",ideaCat:"Todas",showDone:false,showAllItems:false,editItem:null,editIdea:null,editMs:null,
   workSeg:"imputacion",workDate:todayISO(),editEntry:null,showWDone:false,
-  emoFilter:"Todas",editEmo:null
+  emoFilter:"Todas",editEmo:null,
+  placeDraft:null,watchDraft:null
 };
 const LS="mivida.v1";
 function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.emotional={...clone(DEF.emotional),...o.emotional};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
@@ -278,26 +279,32 @@ const MEALS=["desayuno","comida","merienda","cena"];
 const MEAL_LABELS={desayuno:"Desayuno",comida:"Comida",merienda:"Merienda",cena:"Cena"};
 const emptyMeal=()=>({ok:false,note:""});
 const emptyDiet=()=>({desayuno:emptyMeal(),comida:emptyMeal(),merienda:emptyMeal(),cena:emptyMeal()});
-const emptyDay=()=>({gym:false,diet:emptyDiet(),steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null,note:""},watch:{seen:false,name:"",rating:0,note:""},mood:null,note:""});
+const emptyDay=()=>({gym:false,diet:emptyDiet(),steps:null,sports:[],friends:false,people:[],social:"",places:[],watches:[],mood:null,note:""});
+function migratedPlaces(d,id){
+  if(Array.isArray(d.places))return d.places;
+  if(d.place&&d.place.name)return [{id:"p-"+id,name:d.place.name,kind:d.place.kind||"Restaurante",rating:d.place.rating||0,again:d.place.again??null,note:d.place.note||""}];
+  return [];
+}
+function migratedWatches(d,id){
+  if(Array.isArray(d.watches))return d.watches;
+  if(d.watch&&(d.watch.seen||d.watch.name||d.watch.rating||d.watch.note))return [{id:"w-"+id,name:d.watch.name||"",rating:d.watch.rating||0,note:d.watch.note||""}];
+  return [];
+}
 function getDay(id){
   const d=S.days[id];if(!d)return emptyDay();
   const e=emptyDay();
   const diet=typeof d.diet==="boolean"?MEALS.reduce((o,m)=>({...o,[m]:{ok:d.diet,note:""}}),{}):(d.diet||{});
-  return {...e,...d,diet:{...e.diet,...diet},place:{...e.place,...(d.place||{})},watch:{...e.watch,...(d.watch||{})}};
+  return {...e,...d,diet:{...e.diet,...diet},places:migratedPlaces(d,id),watches:migratedWatches(d,id)};
 }
 const dietEmpty=diet=>MEALS.every(m=>!diet[m].ok&&!diet[m].note);
 const dietOk=d=>MEALS.every(m=>d.diet[m].ok);
-const watchEmpty=w=>!w.seen&&!w.name&&!w.rating&&!w.note;
-function isEmptyDay(d){return !d.gym&&dietEmpty(d.diet)&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.place.name&&watchEmpty(d.watch)&&d.mood==null&&!d.note}
+function isEmptyDay(d){return !d.gym&&dietEmpty(d.diet)&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.places.length&&!d.watches.length&&d.mood==null&&!d.note}
 function setMeal(id,meal,patch){const d=getDay(id);setDay(id,{diet:{...d.diet,[meal]:{...d.diet[meal],...patch}}})}
 function setDay(id,patch){const d={...getDay(id),...patch};if(isEmptyDay(d))delete S.days[id];else S.days[id]=d;persist("day:"+id)}
 
 /* ---------- guardado (local en el dispositivo) ---------- */
 function persist(){saveLocal()}
-let pendingRender=false;
 function typing(){const a=document.activeElement;return a&&a.closest&&a.closest("#view")&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)}
-function softRender(){if(typing()){pendingRender=true;return}render()}
-document.addEventListener("focusout",()=>{setTimeout(()=>{if(pendingRender&&!typing()){pendingRender=false;render()}},50)});
 
 /* ---------- copia de seguridad ---------- */
 async function exportBackup(){
@@ -394,7 +401,7 @@ const MOODS=["Malo","Flojo","Normal","Bueno","Top"];
 const stepOk=d=>(d.steps||0)>=S.meta.stepGoal;
 const score=d=>[d.gym,dietOk(d),stepOk(d),(d.sports||[]).length>0].filter(Boolean).length;
 function peopleFreq(){const m={};Object.values(S.days).forEach(d=>(d.people||[]).forEach(p=>{m[p]=(m[p]||0)+1}));return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0])}
-function placeIndex(){const first={},all={};Object.keys(S.days).sort().forEach(id=>{const p=S.days[id].place;if(p&&p.name){const k=p.name.trim().toLowerCase();if(!first[k])first[k]=id;(all[k]=all[k]||{name:p.name.trim(),visits:[],ratings:[],again:null});all[k].visits.push(id);if(p.rating)all[k].ratings.push(p.rating);if(p.again!=null)all[k].again=p.again}});return {first,all}}
+function placeIndex(){const first={},all={};Object.keys(S.days).sort().forEach(id=>{getDay(id).places.forEach(p=>{if(!p.name)return;const k=p.name.trim().toLowerCase();if(!first[k])first[k]=id;(all[k]=all[k]||{name:p.name.trim(),visits:[],ratings:[],again:null});all[k].visits.push(id);if(p.rating)all[k].ratings.push(p.rating);if(p.again!=null)all[k].again=p.again})});return {first,all}}
 function streak(cond){let d=todayISO();if(!(S.days[d]&&cond(getDay(d))))d=addDays(d,-1);let n=0;while(S.days[d]&&cond(getDay(d))){n++;d=addDays(d,-1)}return n}
 function bestStreak(cond){const ids=Object.keys(S.days).sort();let best=0,cur=0,prev=null;ids.forEach(id=>{if(cond(getDay(id))){cur=(prev&&addDays(prev,1)===id)?cur+1:1;best=Math.max(best,cur);prev=id}else{cur=0;prev=null}});return best}
 function periodRange(){
@@ -467,6 +474,23 @@ function renderTop(){
   }
 }
 
+function placeForm(p){
+  return `<div class="form">
+<label>Nombre<input class="plain" id="plName" list="places" value="${esc(p.name)}" placeholder="Restaurante, escapada, concierto…" autocomplete="off" data-in="plName"></label>
+<div class="chips">${KINDS.map(k=>`<button class="chip small ${p.kind===k?"on":""}" data-act="plKind" data-v="${k}">${k}</button>`).join("")}</div>
+<div class="row between" style="margin-top:12px"><div class="stars" role="group" aria-label="Valoración">${[1,2,3,4,5].map(n=>`<button class="star ${p.rating>=n?"on":""}" data-act="plRate" data-v="${n}" aria-label="${n} de 5">★</button>`).join("")}</div>
+<div class="row"><span class="sub">¿Volverías?</span><button class="chip small ${p.again===true?"on":""}" data-act="plAgain" data-v="1">Sí</button><button class="chip small ${p.again===false?"on":""}" data-act="plAgain" data-v="0">No</button></div></div>
+<input class="plain" placeholder="Comentario" value="${esc(p.note)}" data-in="plNote">
+<div class="row"><button class="btn" data-act="savePlace">${p.id?"Guardar cambios":"Añadir"}</button><button class="btn ghost" data-act="cancelPlace">Cancelar</button>${p.id?`<button class="btn danger" data-act="delPlace" data-id="${p.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
+}
+function watchForm(w){
+  return `<div class="form">
+<label>Título<input class="plain" id="wName" value="${esc(w.name)}" placeholder="Título" autocomplete="off" data-in="wName"></label>
+<label>Nota<input class="plain" type="number" inputmode="numeric" min="1" max="10" step="1" placeholder="1-10" value="${w.rating||""}" data-in="wRating"></label>
+<input class="plain" placeholder="Comentario" value="${esc(w.note)}" data-in="wNote">
+<div class="row"><button class="btn" data-act="saveWatch">${w.id?"Guardar cambios":"Añadir"}</button><button class="btn ghost" data-act="cancelWatch">Cancelar</button>${w.id?`<button class="btn danger" data-act="delWatch" data-id="${w.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
+}
+
 function viewHoy(){
   const id=S.date,d=getDay(id),t=todayISO(),dt=parseISO(id);
   const lbl=id===t?"Hoy":id===addDays(t,-1)?"Ayer":cap(DIAS[dt.getDay()]);
@@ -496,19 +520,13 @@ ${d.friends?`<div class="chips">${shown.map(p=>`<button class="chip ${d.people.i
 <div class="field"><input id="newPerson" placeholder="Añadir persona" data-enter="addPerson" autocomplete="off"><button class="btn" data-act="addPerson">Añadir</button></div>`:""}
 </section>
 <section class="block"><h2>Sitio especial</h2>
-<div class="field" style="margin-top:0"><input list="places" placeholder="Restaurante, escapada, concierto…" value="${esc(d.place.name)}" data-in="placeName" autocomplete="off"></div>
+<div class="list">${d.places.length?d.places.map(p=>`<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="editPlace" data-id="${p.id}"><div class="grow">${esc(p.name)}<small>${esc(p.kind)}${p.rating?` · ${p.rating}★`:""}${p.again===true?" · Volvería":p.again===false?" · No volvería":""}</small></div></button>`).join(""):`<div class="empty-state">Sin sitios este día.</div>`}</div>
 <datalist id="places">${Object.values(pi.all).map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist>
-${d.place.name?`<div class="chips">${KINDS.map(k=>`<button class="chip small ${d.place.kind===k?"on":""}" data-act="kind" data-v="${k}">${k}</button>`).join("")}</div>
-<div class="row between" style="margin-top:12px"><div class="stars" role="group" aria-label="Valoración">${[1,2,3,4,5].map(n=>`<button class="star ${d.place.rating>=n?"on":""}" data-act="rate" data-v="${n}" aria-label="${n} de 5">★</button>`).join("")}</div>
-<div class="row"><span class="sub">¿Volverías?</span><button class="chip small ${d.place.again===true?"on":""}" data-act="again" data-v="1">Sí</button><button class="chip small ${d.place.again===false?"on":""}" data-act="again" data-v="0">No</button></div></div>
-<div class="field"><input placeholder="Comentario" value="${esc(d.place.note)}" data-in="placeNote"></div>
-${pi.first[d.place.name.trim().toLowerCase()]===id||!pi.first[d.place.name.trim().toLowerCase()]?`<p class="sub" style="margin:8px 0 0">Sitio nuevo: contará en tu resumen.</p>`:`<p class="sub" style="margin:8px 0 0">Ya has estado ${pi.all[d.place.name.trim().toLowerCase()].visits.filter(v=>v!==id).length} vez/veces antes.</p>`}`:""}
+${S.placeDraft?`<div class="card" style="margin-top:10px">${placeForm(S.placeDraft)}</div>`:`<button class="linkbtn" style="margin-top:10px" data-act="addPlaceOpen">+ Añadir sitio especial</button>`}
 </section>
 <section class="block"><h2>Peli o serie</h2>
-<button class="tile ${d.watch.seen?"on":""}" style="width:100%" data-act="toggleWatch" aria-pressed="${d.watch.seen}"><span class="ck">✓</span><span><b>He visto algo hoy</b><small>Película o serie</small></span></button>
-${d.watch.seen?`<div class="field"><input placeholder="Título" value="${esc(d.watch.name)}" data-in="watchName" autocomplete="off"></div>
-<div class="field"><label>Nota</label><input type="number" inputmode="numeric" min="1" max="10" step="1" placeholder="1-10" value="${d.watch.rating||""}" data-in="watchRating"></div>
-<div class="field"><input placeholder="Comentario" value="${esc(d.watch.note)}" data-in="watchNote"></div>`:""}
+<div class="list">${d.watches.length?d.watches.map(w=>`<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="editWatch" data-id="${w.id}"><div class="grow">${esc(w.name||"Sin título")}${w.note?`<small>${esc(w.note)}</small>`:""}</div><span class="v">${w.rating?`${w.rating}/10`:"–"}</span></button>`).join(""):`<div class="empty-state">Sin pelis o series este día.</div>`}</div>
+${S.watchDraft?`<div class="card" style="margin-top:10px">${watchForm(S.watchDraft)}</div>`:`<button class="linkbtn" style="margin-top:10px" data-act="addWatchOpen">+ Añadir película o serie</button>`}
 </section>
 <section class="block"><h2>El día</h2>
 <div class="moods">${MOODS.map((m,i)=>`<button class="mood ${d.mood===i+1?"on":""}" data-act="mood" data-v="${i+1}"><i style="opacity:${.25+i*.18}"></i>${m}</button>`).join("")}</div>
@@ -559,12 +577,12 @@ ${ring(gym/gymTarget,"Entreno",`${gym} de ${gymTarget}`)}${ring(diet/logged.leng
   if(Object.keys(sc).length)html+=`<section class="block"><h2>Deporte extra</h2><div class="card">${Object.entries(sc).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="hbar"><span>${k}</span><div class="t"><i class="${k==="Fútbol"?"st":""}" style="width:${v/sm*100}%"></i></div><b>${v}</b></div>`).join("")}</div></section>`;
   // resumen
   const pi=placeIndex();const newPlaces=Object.entries(pi.first).filter(([k,d])=>d>=R.start&&d<=R.end).map(([k])=>pi.all[k].name);
-  const inPer={};logged.forEach(id=>{const p=S.days[id].place;if(p&&p.name){const k=p.name.trim().toLowerCase();(inPer[k]=inPer[k]||{name:p.name.trim(),r:[],n:0});inPer[k].n++;if(p.rating)inPer[k].r.push(p.rating)}});
+  const inPer={};logged.forEach(id=>{getDay(id).places.forEach(p=>{if(!p.name)return;const k=p.name.trim().toLowerCase();(inPer[k]=inPer[k]||{name:p.name.trim(),r:[],n:0});inPer[k].n++;if(p.rating)inPer[k].r.push(p.rating)})});
   const top=Object.values(inPer).map(p=>({...p,avg:p.r.length?p.r.reduce((a,b)=>a+b,0)/p.r.length:0})).sort((a,b)=>b.avg-a.avg||b.n-a.n)[0];
   const pc={};D.forEach(d=>d.people.forEach(p=>{pc[p]=(pc[p]||0)+1}));const topP=Object.entries(pc).sort((a,b)=>b[1]-a[1]).slice(0,3);
   const moods=D.filter(d=>d.mood).map(d=>d.mood);const mAvg=moods.length?moods.reduce((a,b)=>a+b,0)/moods.length:0;
   let socialMonth="";if(S.period==="año"){const mc=Array(12).fill(0);logged.forEach(id=>{const g=getDay(id);if(g.friends||g.social)mc[+id.slice(5,7)-1]++});const mi=mc.indexOf(Math.max(...mc));if(mc[mi])socialMonth=cap(MESL[mi])}
-  const watched=logged.map(id=>({id,...getDay(id).watch})).filter(w=>w.seen);
+  const watched=[];logged.forEach(id=>{getDay(id).watches.forEach(w=>watched.push({dayId:id,...w}))});
   const watchRated=watched.filter(w=>w.rating);
   const watchAvg=watchRated.length?watchRated.reduce((s,w)=>s+w.rating,0)/watchRated.length:0;
   const topWatch=watchRated.slice().sort((a,b)=>b.rating-a.rating)[0];
@@ -583,9 +601,9 @@ ${topP.length?`<div class="fact wide"><b>${esc(topP.map(p=>p[0]).join(", "))}</b
 ${socialMonth?`<div class="fact wide"><b>${socialMonth}</b><span>tu mes más social</span></div>`:""}
 </div></section>`;
   // pelis y series
-  if(watched.length)html+=`<section class="block"><h2>Películas y series</h2><div class="list">${watched.slice().sort((a,b)=>b.id.localeCompare(a.id)).map(w=>`<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="openDay" data-v="${w.id}"><div class="grow">${esc(w.name||"Sin título")}<small>${parseISO(w.id).getDate()} ${MES[parseISO(w.id).getMonth()]}${w.note?` · ${esc(w.note)}`:""}</small></div><span class="v">${w.rating?`${w.rating}/10`:"–"}</span></button>`).join("")}</div></section>`;
+  if(watched.length)html+=`<section class="block"><h2>Películas y series</h2><div class="list">${watched.slice().sort((a,b)=>b.dayId.localeCompare(a.dayId)).map(w=>`<button class="li" style="width:100%;border-left:0;border-right:0;border-bottom:0;background:none;text-align:left" data-act="openDay" data-v="${w.dayId}"><div class="grow">${esc(w.name||"Sin título")}<small>${parseISO(w.dayId).getDate()} ${MES[parseISO(w.dayId).getMonth()]}${w.note?` · ${esc(w.note)}`:""}</small></div><span class="v">${w.rating?`${w.rating}/10`:"–"}</span></button>`).join("")}</div></section>`;
   // hace cuánto
-  const last={};Object.keys(S.days).sort().forEach(id=>{const g=getDay(id);g.people.forEach(p=>last["Ver a "+p]=id);if(g.sports.includes("Fútbol"))last["Jugar al fútbol"]=id;if(g.gym)last["Entrenar"]=id;if(g.friends||g.social)last["Plan social"]=id;if(g.watch.seen)last["Ver una peli o serie"]=id});
+  const last={};Object.keys(S.days).sort().forEach(id=>{const g=getDay(id);g.people.forEach(p=>last["Ver a "+p]=id);if(g.sports.includes("Fútbol"))last["Jugar al fútbol"]=id;if(g.gym)last["Entrenar"]=id;if(g.friends||g.social)last["Plan social"]=id;if(g.watches.length)last["Ver una peli o serie"]=id});
   Object.values(pi.first).forEach(id=>{if(!last["Ir a un sitio nuevo"]||id>last["Ir a un sitio nuevo"])last["Ir a un sitio nuevo"]=id});
   const ago=Object.entries(last).map(([k,d])=>[k,daysBetween(d,t)]).sort((a,b)=>b[1]-a[1]).slice(0,10);
   if(ago.length)html+=`<section class="block"><h2>Hace cuánto que no…</h2><div class="list">${ago.map(([k,n])=>`<div class="li"><div class="grow">${esc(k)}</div><span class="v ${n>21?"":"muted"}" style="${n>21?"color:var(--red)":""}">${agoText(n)}</span></div>`).join("")}</div></section>`;
@@ -791,19 +809,36 @@ function render(){
 /* ---------- actions ---------- */
 const val=id=>{const el=document.getElementById(id);return el?el.value.trim():""};
 const ACT={
-  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;S.editEntry=null;S.editEmo=null;render();window.scrollTo(0,0)},
-  dayNav:t=>{const n=addDays(S.date,+t.dataset.v);if(n<=todayISO()){S.date=n;render()}},
-  goToday:()=>{S.date=todayISO();render()},
-  openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
+  tab:t=>{S.tab=t.dataset.tab;S.editItem=null;S.editIdea=null;S.editMs=null;S.editEntry=null;S.editEmo=null;S.placeDraft=null;S.watchDraft=null;render();window.scrollTo(0,0)},
+  dayNav:t=>{const n=addDays(S.date,+t.dataset.v);if(n<=todayISO()){S.date=n;S.placeDraft=null;S.watchDraft=null;render()}},
+  goToday:()=>{S.date=todayISO();S.placeDraft=null;S.watchDraft=null;render()},
+  openDay:t=>{S.date=t.dataset.v;S.tab="hoy";S.placeDraft=null;S.watchDraft=null;render();window.scrollTo(0,0)},
   toggle:t=>{const f=t.dataset.f,d=getDay(S.date);setDay(S.date,{[f]:!d[f]});render()},
   mealToggle:t=>{const m=t.dataset.f,d=getDay(S.date);setMeal(S.date,m,{ok:!d.diet[m].ok});render()},
-  toggleWatch:()=>{const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,seen:!d.watch.seen}});render()},
   sport:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{sports:d.sports.includes(v)?d.sports.filter(x=>x!==v):[...d.sports,v]});render()},
   person:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{friends:true,people:d.people.includes(v)?d.people.filter(x=>x!==v):[...d.people,v]});render()},
   addPerson:()=>{const v=val("newPerson");if(!v)return;const d=getDay(S.date);if(!d.people.includes(v))setDay(S.date,{friends:true,people:[...d.people,v]});render();document.getElementById("newPerson")?.focus()},
-  kind:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,kind:t.dataset.v}});render()},
-  rate:t=>{const d=getDay(S.date),n=+t.dataset.v;setDay(S.date,{place:{...d.place,rating:d.place.rating===n?0:n}});render()},
-  again:t=>{const d=getDay(S.date),v=t.dataset.v==="1";setDay(S.date,{place:{...d.place,again:d.place.again===v?null:v}});render()},
+  addPlaceOpen:()=>{S.placeDraft={id:null,name:"",kind:"Restaurante",rating:0,again:null,note:""};render()},
+  editPlace:t=>{const d=getDay(S.date),p=d.places.find(x=>x.id===t.dataset.id);if(p)S.placeDraft={...p};render()},
+  cancelPlace:()=>{S.placeDraft=null;render()},
+  plKind:t=>{S.placeDraft={...S.placeDraft,kind:t.dataset.v};render()},
+  plRate:t=>{const n=+t.dataset.v;S.placeDraft={...S.placeDraft,rating:S.placeDraft.rating===n?0:n};render()},
+  plAgain:t=>{const v=t.dataset.v==="1";S.placeDraft={...S.placeDraft,again:S.placeDraft.again===v?null:v};render()},
+  savePlace:()=>{const name=S.placeDraft.name.trim();if(!name)return alertField("plName");
+    const d=getDay(S.date),p={...S.placeDraft,name,id:S.placeDraft.id||rid()};
+    const exists=d.places.some(x=>x.id===p.id);
+    setDay(S.date,{places:exists?d.places.map(x=>x.id===p.id?p:x):[...d.places,p]});
+    S.placeDraft=null;render()},
+  delPlace:t=>{const d=getDay(S.date);setDay(S.date,{places:d.places.filter(x=>x.id!==t.dataset.id)});S.placeDraft=null;render()},
+  addWatchOpen:()=>{S.watchDraft={id:null,name:"",rating:0,note:""};render()},
+  editWatch:t=>{const d=getDay(S.date),w=d.watches.find(x=>x.id===t.dataset.id);if(w)S.watchDraft={...w};render()},
+  cancelWatch:()=>{S.watchDraft=null;render()},
+  saveWatch:()=>{const name=S.watchDraft.name.trim();if(!name)return alertField("wName");
+    const d=getDay(S.date),w={...S.watchDraft,name,id:S.watchDraft.id||rid()};
+    const exists=d.watches.some(x=>x.id===w.id);
+    setDay(S.date,{watches:exists?d.watches.map(x=>x.id===w.id?w:x):[...d.watches,w]});
+    S.watchDraft=null;render()},
+  delWatch:t=>{const d=getDay(S.date);setDay(S.date,{watches:d.watches.filter(x=>x.id!==t.dataset.id)});S.watchDraft=null;render()},
   mood:t=>{const d=getDay(S.date),n=+t.dataset.v;setDay(S.date,{mood:d.mood===n?null:n});render()},
   review:t=>{const wk=weekStart(todayISO());const r={...(S.meta.reviews[wk]||{})};r[t.dataset.k]=!r[t.dataset.k];S.meta.reviews={...S.meta.reviews,[wk]:r};persist("meta");render()},
   period:t=>{S.period=t.dataset.v;S.anchor=todayISO();render()},
@@ -872,12 +907,12 @@ function alertField(id){const el=document.getElementById(id);if(el){el.style.out
 const IN={
   steps:t=>{const v=t.value===""?null:Math.max(0,parseInt(t.value,10)||0);setDay(S.date,{steps:v});const c=document.getElementById("doneCount");if(c)c.innerHTML=`<b>${score(getDay(S.date))}</b> de 4`},
   note:t=>setDay(S.date,{note:t.value}),
-  placeName:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,name:t.value}})},
-  placeNote:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,note:t.value}})},
   mealNote:t=>setMeal(S.date,t.dataset.f,{note:t.value}),
-  watchName:t=>{const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,name:t.value}})},
-  watchRating:t=>{const v=t.value===""?0:Math.max(1,Math.min(10,parseInt(t.value,10)||0));const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,rating:v}})},
-  watchNote:t=>{const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,note:t.value}})}
+  plName:t=>{S.placeDraft={...S.placeDraft,name:t.value}},
+  plNote:t=>{S.placeDraft={...S.placeDraft,note:t.value}},
+  wName:t=>{S.watchDraft={...S.watchDraft,name:t.value}},
+  wRating:t=>{const v=t.value===""?0:Math.max(1,Math.min(10,parseInt(t.value,10)||0));S.watchDraft={...S.watchDraft,rating:v}},
+  wNote:t=>{S.watchDraft={...S.watchDraft,note:t.value}}
 };
 const CH={
   income:t=>{S.finance={...S.finance,income:parseFloat(t.value)||0};persist("finance");render()},
@@ -895,8 +930,7 @@ const CH={
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act]){e.preventDefault();ACT[t.dataset.act](t,e)}});
 document.addEventListener("input",e=>{const t=e.target.closest("[data-in]");if(t&&IN[t.dataset.in])IN[t.dataset.in](t)});
 document.addEventListener("change",e=>{const t=e.target.closest("[data-ch]");if(t&&CH[t.dataset.ch])CH[t.dataset.ch](t);
-  if(e.target.id==="importFile"&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=""}
-  const pn=e.target.closest("[data-in='placeName']");if(pn&&S.tab==="hoy")softRender()});
+  if(e.target.id==="importFile"&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value=""}});
 document.addEventListener("keydown",e=>{if(e.key!=="Enter")return;const t=e.target.closest("[data-enter]");if(t&&ACT[t.dataset.enter]){e.preventDefault();ACT[t.dataset.enter](t)}});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.tab==="hoy"&&!typing()){const t=todayISO();if(S.date>t)S.date=t;render()}});
 
