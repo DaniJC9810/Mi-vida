@@ -278,16 +278,17 @@ const MEALS=["desayuno","comida","merienda","cena"];
 const MEAL_LABELS={desayuno:"Desayuno",comida:"Comida",merienda:"Merienda",cena:"Cena"};
 const emptyMeal=()=>({ok:false,note:""});
 const emptyDiet=()=>({desayuno:emptyMeal(),comida:emptyMeal(),merienda:emptyMeal(),cena:emptyMeal()});
-const emptyDay=()=>({gym:false,diet:emptyDiet(),steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null},mood:null,note:""});
+const emptyDay=()=>({gym:false,diet:emptyDiet(),steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null,note:""},watch:{seen:false,rating:0,note:""},mood:null,note:""});
 function getDay(id){
   const d=S.days[id];if(!d)return emptyDay();
   const e=emptyDay();
   const diet=typeof d.diet==="boolean"?MEALS.reduce((o,m)=>({...o,[m]:{ok:d.diet,note:""}}),{}):(d.diet||{});
-  return {...e,...d,diet:{...e.diet,...diet},place:{...e.place,...(d.place||{})}};
+  return {...e,...d,diet:{...e.diet,...diet},place:{...e.place,...(d.place||{})},watch:{...e.watch,...(d.watch||{})}};
 }
 const dietEmpty=diet=>MEALS.every(m=>!diet[m].ok&&!diet[m].note);
 const dietOk=d=>MEALS.every(m=>d.diet[m].ok);
-function isEmptyDay(d){return !d.gym&&dietEmpty(d.diet)&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.place.name&&d.mood==null&&!d.note}
+const watchEmpty=w=>!w.seen&&!w.rating&&!w.note;
+function isEmptyDay(d){return !d.gym&&dietEmpty(d.diet)&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.place.name&&watchEmpty(d.watch)&&d.mood==null&&!d.note}
 function setMeal(id,meal,patch){const d=getDay(id);setDay(id,{diet:{...d.diet,[meal]:{...d.diet[meal],...patch}}})}
 function setDay(id,patch){const d={...getDay(id),...patch};if(isEmptyDay(d))delete S.days[id];else S.days[id]=d;persist("day:"+id)}
 
@@ -493,15 +494,20 @@ ${MEALS.map(m=>`<div class="task" style="padding:10px 0"><button class="cb ${d.d
 <button class="tile ${d.friends?"on":""}" style="width:100%" data-act="toggle" data-f="friends" aria-pressed="${d.friends}"><span class="ck">✓</span><span><b>He visto a amigos</b><small>${d.people.length?esc(d.people.join(", ")):"Marca y elige con quién"}</small></span></button>
 ${d.friends?`<div class="chips">${shown.map(p=>`<button class="chip ${d.people.includes(p)?"on":""}" data-act="person" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>
 <div class="field"><input id="newPerson" placeholder="Añadir persona" data-enter="addPerson" autocomplete="off"><button class="btn" data-act="addPerson">Añadir</button></div>`:""}
-<div class="field"><input placeholder="Algo diferente hoy (concierto, escapada…)" value="${esc(d.social)}" data-in="social"></div>
 </section>
 <section class="block"><h2>Sitio especial</h2>
-<div class="field" style="margin-top:0"><input list="places" placeholder="Restaurante o sitio" value="${esc(d.place.name)}" data-in="placeName" autocomplete="off"></div>
+<div class="field" style="margin-top:0"><input list="places" placeholder="Restaurante, escapada, concierto…" value="${esc(d.place.name)}" data-in="placeName" autocomplete="off"></div>
 <datalist id="places">${Object.values(pi.all).map(p=>`<option value="${esc(p.name)}">`).join("")}</datalist>
 ${d.place.name?`<div class="chips">${KINDS.map(k=>`<button class="chip small ${d.place.kind===k?"on":""}" data-act="kind" data-v="${k}">${k}</button>`).join("")}</div>
 <div class="row between" style="margin-top:12px"><div class="stars" role="group" aria-label="Valoración">${[1,2,3,4,5].map(n=>`<button class="star ${d.place.rating>=n?"on":""}" data-act="rate" data-v="${n}" aria-label="${n} de 5">★</button>`).join("")}</div>
 <div class="row"><span class="sub">¿Volverías?</span><button class="chip small ${d.place.again===true?"on":""}" data-act="again" data-v="1">Sí</button><button class="chip small ${d.place.again===false?"on":""}" data-act="again" data-v="0">No</button></div></div>
+<div class="field"><input placeholder="Comentario" value="${esc(d.place.note)}" data-in="placeNote"></div>
 ${pi.first[d.place.name.trim().toLowerCase()]===id||!pi.first[d.place.name.trim().toLowerCase()]?`<p class="sub" style="margin:8px 0 0">Sitio nuevo: contará en tu resumen.</p>`:`<p class="sub" style="margin:8px 0 0">Ya has estado ${pi.all[d.place.name.trim().toLowerCase()].visits.filter(v=>v!==id).length} vez/veces antes.</p>`}`:""}
+</section>
+<section class="block"><h2>Peli o serie</h2>
+<button class="tile ${d.watch.seen?"on":""}" style="width:100%" data-act="toggleWatch" aria-pressed="${d.watch.seen}"><span class="ck">✓</span><span><b>He visto algo hoy</b><small>Película o serie</small></span></button>
+${d.watch.seen?`<div class="field"><label>Nota</label><input type="number" inputmode="numeric" min="1" max="10" step="1" placeholder="1-10" value="${d.watch.rating||""}" data-in="watchRating"></div>
+<div class="field"><input placeholder="Comentario" value="${esc(d.watch.note)}" data-in="watchNote"></div>`:""}
 </section>
 <section class="block"><h2>El día</h2>
 <div class="moods">${MOODS.map((m,i)=>`<button class="mood ${d.mood===i+1?"on":""}" data-act="mood" data-v="${i+1}"><i style="opacity:${.25+i*.18}"></i>${m}</button>`).join("")}</div>
@@ -781,6 +787,7 @@ const ACT={
   openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
   toggle:t=>{const f=t.dataset.f,d=getDay(S.date);setDay(S.date,{[f]:!d[f]});render()},
   mealToggle:t=>{const m=t.dataset.f,d=getDay(S.date);setMeal(S.date,m,{ok:!d.diet[m].ok});render()},
+  toggleWatch:()=>{const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,seen:!d.watch.seen}});render()},
   sport:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{sports:d.sports.includes(v)?d.sports.filter(x=>x!==v):[...d.sports,v]});render()},
   person:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{friends:true,people:d.people.includes(v)?d.people.filter(x=>x!==v):[...d.people,v]});render()},
   addPerson:()=>{const v=val("newPerson");if(!v)return;const d=getDay(S.date);if(!d.people.includes(v))setDay(S.date,{friends:true,people:[...d.people,v]});render();document.getElementById("newPerson")?.focus()},
@@ -854,10 +861,12 @@ const ACT={
 function alertField(id){const el=document.getElementById(id);if(el){el.style.outline="2px solid var(--red)";el.focus();setTimeout(()=>el.style.outline="",1500)}}
 const IN={
   steps:t=>{const v=t.value===""?null:Math.max(0,parseInt(t.value,10)||0);setDay(S.date,{steps:v});const c=document.getElementById("doneCount");if(c)c.innerHTML=`<b>${score(getDay(S.date))}</b> de 4`},
-  social:t=>setDay(S.date,{social:t.value}),
   note:t=>setDay(S.date,{note:t.value}),
   placeName:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,name:t.value}})},
-  mealNote:t=>setMeal(S.date,t.dataset.f,{note:t.value})
+  placeNote:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,note:t.value}})},
+  mealNote:t=>setMeal(S.date,t.dataset.f,{note:t.value}),
+  watchRating:t=>{const v=t.value===""?0:Math.max(1,Math.min(10,parseInt(t.value,10)||0));const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,rating:v}})},
+  watchNote:t=>{const d=getDay(S.date);setDay(S.date,{watch:{...d.watch,note:t.value}})}
 };
 const CH={
   income:t=>{S.finance={...S.finance,income:parseFloat(t.value)||0};persist("finance");render()},
