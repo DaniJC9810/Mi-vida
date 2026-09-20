@@ -1,6 +1,6 @@
 # Mi vida — app personal de Dani
 
-Web app personal (PWA) para registrar el día a día con muy poco esfuerzo. Se usa sobre todo desde un iPhone, añadida a la pantalla de inicio. Publicada con GitHub Pages en https://danijc9810.github.io/mi-vida/ a partir de la rama `main`.
+Web app personal (PWA) para registrar el día a día con muy poco esfuerzo. Se usa sobre todo desde un iPhone, añadida a la pantalla de inicio. Publicada con GitHub Pages en https://danijc9810.github.io/Mi-vida/ (con M mayúscula, la ruta respeta las mayúsculas del nombre del repo) a partir de la rama `main`.
 
 ## Principios (no romperlos)
 - **5 minutos al día como máximo.** El check-in diario debe ser casi todo toques. Cualquier función nueva no puede hacer más lento el registro diario.
