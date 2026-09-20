@@ -82,7 +82,6 @@ h2{font:400 19px/1.2 var(--serif);margin:0 0 10px}
 .linkbtn{border:0;background:none;color:var(--sea);font-weight:600;padding:4px 0}
 
 /* Tiles */
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tile{border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:14px;text-align:left;display:flex;align-items:center;gap:10px;min-height:64px;transition:background .2s,border-color .2s}
 .tile .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:14px;color:transparent;transition:all .2s}
 .tile.on{background:var(--sea-soft);border-color:var(--sea)}
@@ -126,14 +125,13 @@ textarea.plain{min-height:70px;resize:vertical}
 .ring small{display:block;font-size:12px;color:var(--ink-2);line-height:1.3}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .cal .h{font-size:11px;color:var(--ink-2);text-align:center}
-.cell{aspect-ratio:1;border-radius:8px;background:var(--surface-2);position:relative;font-size:11px;display:grid;place-items:center;color:var(--ink-2);border:1px solid transparent}
-.cell.l1{background:color-mix(in srgb,var(--sea) 22%,var(--surface-2))}
-.cell.l2{background:color-mix(in srgb,var(--sea) 45%,var(--surface-2));color:var(--ink)}
-.cell.l3{background:color-mix(in srgb,var(--sea) 70%,var(--surface-2));color:#fff}
-.cell.l4{background:var(--sea-deep);color:var(--bg)}
+.cell{aspect-ratio:1;border-radius:8px;background:var(--surface-2);position:relative;font-size:10px;color:var(--ink-2);border:1px solid transparent;display:flex;flex-direction:column;padding:3px;gap:2px}
+.cell .n{text-align:center;line-height:1.3}
+.cell .bands{flex:1;display:flex;flex-direction:column;gap:2px}
+.cell .bands i{flex:1;display:block;border-radius:2px;background:var(--line)}
+.cell .bands i.on{background:var(--sea)}
 .cell.today{border-color:var(--red)}
-.cell .dot{position:absolute;right:4px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--red)}
-.cell.empty{background:none}
+.cell.empty{background:none;border:0}
 .yearmap{overflow-x:auto;padding-bottom:4px}
 .yearmap .g{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);gap:3px}
 .yearmap .c{width:11px;height:11px;border-radius:3px;background:var(--surface-2)}
@@ -276,9 +274,21 @@ const LS="mivida.v1";
 function loadLocal(){try{const o=JSON.parse(localStorage.getItem(LS)||"null");if(o){S.days=o.days||{};S.finance={...clone(DEF.finance),...o.finance};S.plans={...clone(DEF.plans),...o.plans};S.work={...clone(DEF.work),...o.work};S.emotional={...clone(DEF.emotional),...o.emotional};S.meta={...clone(DEF.meta),...o.meta}}}catch(e){}}
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({days:S.days,finance:S.finance,plans:S.plans,work:S.work,emotional:S.emotional,meta:S.meta}))}catch(e){}}
 
-const emptyDay=()=>({gym:false,diet:false,steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null},mood:null,note:""});
-function getDay(id){const d=S.days[id];if(!d)return emptyDay();const e=emptyDay();return {...e,...d,place:{...e.place,...(d.place||{})}}}
-function isEmptyDay(d){return !d.gym&&!d.diet&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.place.name&&d.mood==null&&!d.note}
+const MEALS=["desayuno","comida","merienda","cena"];
+const MEAL_LABELS={desayuno:"Desayuno",comida:"Comida",merienda:"Merienda",cena:"Cena"};
+const emptyMeal=()=>({ok:false,note:""});
+const emptyDiet=()=>({desayuno:emptyMeal(),comida:emptyMeal(),merienda:emptyMeal(),cena:emptyMeal()});
+const emptyDay=()=>({gym:false,diet:emptyDiet(),steps:null,sports:[],friends:false,people:[],social:"",place:{name:"",kind:"Restaurante",rating:0,again:null},mood:null,note:""});
+function getDay(id){
+  const d=S.days[id];if(!d)return emptyDay();
+  const e=emptyDay();
+  const diet=typeof d.diet==="boolean"?MEALS.reduce((o,m)=>({...o,[m]:{ok:d.diet,note:""}}),{}):(d.diet||{});
+  return {...e,...d,diet:{...e.diet,...diet},place:{...e.place,...(d.place||{})}};
+}
+const dietEmpty=diet=>MEALS.every(m=>!diet[m].ok&&!diet[m].note);
+const dietOk=d=>MEALS.every(m=>d.diet[m].ok);
+function isEmptyDay(d){return !d.gym&&dietEmpty(d.diet)&&(d.steps==null)&&!d.sports.length&&!d.friends&&!d.people.length&&!d.social&&!d.place.name&&d.mood==null&&!d.note}
+function setMeal(id,meal,patch){const d=getDay(id);setDay(id,{diet:{...d.diet,[meal]:{...d.diet[meal],...patch}}})}
 function setDay(id,patch){const d={...getDay(id),...patch};if(isEmptyDay(d))delete S.days[id];else S.days[id]=d;persist("day:"+id)}
 
 /* ---------- guardado (local en el dispositivo) ---------- */
@@ -381,7 +391,7 @@ const SPORTS=["Fútbol","Pádel","Correr","Bici","Nadar","Otro"];
 const KINDS=["Restaurante","Bar","Sitio","Viaje"];
 const MOODS=["Malo","Flojo","Normal","Bueno","Top"];
 const stepOk=d=>(d.steps||0)>=S.meta.stepGoal;
-const score=d=>[d.gym,d.diet,stepOk(d),(d.sports||[]).length>0].filter(Boolean).length;
+const score=d=>[d.gym,dietOk(d),stepOk(d),(d.sports||[]).length>0].filter(Boolean).length;
 function peopleFreq(){const m={};Object.values(S.days).forEach(d=>(d.people||[]).forEach(p=>{m[p]=(m[p]||0)+1}));return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(e=>e[0])}
 function placeIndex(){const first={},all={};Object.keys(S.days).sort().forEach(id=>{const p=S.days[id].place;if(p&&p.name){const k=p.name.trim().toLowerCase();if(!first[k])first[k]=id;(all[k]=all[k]||{name:p.name.trim(),visits:[],ratings:[],again:null});all[k].visits.push(id);if(p.rating)all[k].ratings.push(p.rating);if(p.again!=null)all[k].again=p.again}});return {first,all}}
 function streak(cond){let d=todayISO();if(!(S.days[d]&&cond(getDay(d))))d=addDays(d,-1);let n=0;while(S.days[d]&&cond(getDay(d))){n++;d=addDays(d,-1)}return n}
@@ -472,9 +482,9 @@ function viewHoy(){
 ${items.map(([k,l])=>`<div class="task" style="padding:10px 0;border:0"><button class="cb ${r[k]?"on":""}" data-act="review" data-k="${k}" aria-label="${l}">✓</button><div class="grow"><span>${l}</span></div></div>`).join("")}</div></section>`;
   }
   html+=`<section class="block"><div class="row between"><h2>Cuerpo</h2><span class="counter" id="doneCount"><b>${score(d)}</b> de 4</span></div>
-<div class="tiles">
-<button class="tile ${d.gym?"on":""}" data-act="toggle" data-f="gym" aria-pressed="${d.gym}"><span class="ck">✓</span><span><b>Entreno</b><small>Gimnasio</small></span></button>
-<button class="tile ${d.diet?"on":""}" data-act="toggle" data-f="diet" aria-pressed="${d.diet}"><span class="ck">✓</span><span><b>Dieta</b><small>Cumplida</small></span></button>
+<button class="tile ${d.gym?"on":""}" style="width:100%" data-act="toggle" data-f="gym" aria-pressed="${d.gym}"><span class="ck">✓</span><span><b>Entreno</b><small>Gimnasio</small></span></button>
+<div class="card" style="margin-top:10px"><div class="row between" style="margin-bottom:2px"><b>Dieta</b><span class="sub">${MEALS.filter(m=>d.diet[m].ok).length} de 4</span></div>
+${MEALS.map(m=>`<div class="task" style="padding:10px 0"><button class="cb ${d.diet[m].ok?"on":""}" data-act="mealToggle" data-f="${m}" aria-label="${MEAL_LABELS[m]}">✓</button><div class="grow"><span>${MEAL_LABELS[m]}</span>${d.diet[m].ok?"":`<input class="plain" placeholder="¿Qué has comido o por qué no la has cumplido?" value="${esc(d.diet[m].note)}" data-in="mealNote" data-f="${m}" style="margin-top:6px">`}</div></div>`).join("")}
 </div>
 <div class="field"><label for="steps">Pasos</label><input id="steps" type="number" inputmode="numeric" min="0" step="100" placeholder="0" value="${d.steps??""}" data-in="steps"><span class="sub" style="padding-right:10px">objetivo ${num(S.meta.stepGoal)}</span></div>
 <div class="chips" role="group" aria-label="Otro deporte">${SPORTS.map(s=>`<button class="chip ${s==="Fútbol"?"futbol":""} ${d.sports.includes(s)?"on":""}" data-act="sport" data-v="${s}" aria-pressed="${d.sports.includes(s)}">${s}</button>`).join("")}</div>
@@ -504,7 +514,7 @@ ${pi.first[d.place.name.trim().toLowerCase()]===id||!pi.first[d.place.name.trim(
 function viewStats(){
   const R=periodRange(),t=todayISO();
   const upto=R.days.filter(d=>d<=t);const logged=upto.filter(d=>S.days[d]);const D=logged.map(getDay);
-  const gym=D.filter(d=>d.gym).length,diet=D.filter(d=>d.diet).length,steps=D.filter(stepOk).length,soc=D.filter(d=>d.friends||d.social).length;
+  const gym=D.filter(d=>d.gym).length,diet=D.filter(dietOk).length,steps=D.filter(stepOk).length,soc=D.filter(d=>d.friends||d.social).length;
   const weeks=Math.max(1,upto.length/7);const gymTarget=Math.round(S.meta.gymWeek*weeks)||1;
   let html=`<section class="block"><div class="seg">${["semana","mes","año"].map(p=>`<button class="${S.period===p?"on":""}" data-act="period" data-v="${p}">${cap(p)}</button>`).join("")}</div>
 <div class="datebar"><button class="iconbtn" data-act="pnav" data-v="-1" aria-label="Anterior">‹</button><div class="d"><b>${R.label}</b><span class="sub">${logged.length} día${logged.length!==1?"s":""} registrados</span></div><button class="iconbtn" data-act="pnav" data-v="1" aria-label="Siguiente" ${R.end>=t?"disabled style='opacity:.35'":""}>›</button></div></section>`;
@@ -513,7 +523,7 @@ function viewStats(){
 ${ring(gym/gymTarget,"Entreno",`${gym} de ${gymTarget}`)}${ring(diet/logged.length,"Dieta",`${diet} días`)}${ring(steps/logged.length,"Pasos",`${steps} días ≥ obj.`)}${ring(soc/logged.length,"Social",`${soc} días`)}
 </div></div></section>`;
   html+=`<section class="block"><h2>Rachas</h2><div class="streaks">
-<div class="streak"><b>${streak(d=>d.diet)}</b><span>Dieta · mejor ${bestStreak(d=>d.diet)}</span></div>
+<div class="streak"><b>${streak(dietOk)}</b><span>Dieta · mejor ${bestStreak(dietOk)}</span></div>
 <div class="streak"><b>${streak(stepOk)}</b><span>Pasos · mejor ${bestStreak(stepOk)}</span></div>
 <div class="streak"><b>${streak(()=>true)}</b><span>Registro · mejor ${bestStreak(()=>true)}</span></div></div></section>`;
   // map
@@ -524,9 +534,13 @@ ${ring(gym/gymTarget,"Entreno",`${gym} de ${gymTarget}`)}${ring(diet/logged.leng
     html+=`<div class="yearmap"><div class="g">${cells}</div></div>`;
   }else{
     let pre=S.period==="mes"?(parseISO(R.start).getDay()+6)%7:0;
-    html+=`<div class="cal">${["L","M","X","J","V","S","D"].map(x=>`<div class="h">${x}</div>`).join("")}${"<div class='cell empty'></div>".repeat(pre)}${R.days.map(d=>{const dd=S.days[d];const g=dd?getDay(d):null;return `<button class="cell ${g?"l"+score(g):""} ${d===t?"today":""}" data-act="openDay" data-v="${d}" aria-label="${d}" style="border-width:1px">${parseISO(d).getDate()}${g&&(g.friends||g.social)?'<span class="dot"></span>':""}</button>`}).join("")}</div>`;
+    const bandsFor=g=>[g.gym,dietOk(g),stepOk(g),!!(g.friends||g.social)];
+    html+=`<div class="cal">${["L","M","X","J","V","S","D"].map(x=>`<div class="h">${x}</div>`).join("")}${"<div class='cell empty'></div>".repeat(pre)}${R.days.map(d=>{const dd=S.days[d];const g=dd?getDay(d):null;const bands=g?bandsFor(g):[false,false,false,false];return `<button class="cell ${d===t?"today":""}" data-act="openDay" data-v="${d}" aria-label="${d}"><span class="n">${parseISO(d).getDate()}</span><span class="bands">${bands.map(b=>`<i class="${b?"on":""}"></i>`).join("")}</span></button>`}).join("")}</div>`;
   }
-  html+=`<div class="legend"><span>Hábitos cumplidos:</span><span><i style="background:var(--surface-2)"></i>0</span><span><i style="background:color-mix(in srgb,var(--sea) 45%,var(--surface-2))"></i>2</span><span><i style="background:var(--sea-deep)"></i>4</span>${S.period!=="año"?`<span><i style="background:var(--red);border-radius:50%"></i>Social</span>`:""}</div></div></section>`;
+  html+=S.period==="año"
+    ?`<div class="legend"><span>Hábitos cumplidos:</span><span><i style="background:var(--surface-2)"></i>0</span><span><i style="background:color-mix(in srgb,var(--sea) 45%,var(--surface-2))"></i>2</span><span><i style="background:var(--sea-deep)"></i>4</span></div>`
+    :`<p class="sub" style="margin:10px 0 0">Franjas de cada día, de arriba abajo: entreno, dieta, pasos, amigos.</p>`;
+  html+="</div></section>";
   // steps chart
   let vals,labels;
   if(S.period==="año"){vals=[];labels=[];for(let m=0;m<12;m++){const ds=R.days.filter(d=>+d.slice(5,7)===m+1&&S.days[d]&&S.days[d].steps!=null);vals.push(ds.length?ds.reduce((s,d)=>s+S.days[d].steps,0)/ds.length:0);labels.push(MES[m][0].toUpperCase())}}
@@ -762,6 +776,7 @@ const ACT={
   goToday:()=>{S.date=todayISO();render()},
   openDay:t=>{S.date=t.dataset.v;S.tab="hoy";render();window.scrollTo(0,0)},
   toggle:t=>{const f=t.dataset.f,d=getDay(S.date);setDay(S.date,{[f]:!d[f]});render()},
+  mealToggle:t=>{const m=t.dataset.f,d=getDay(S.date);setMeal(S.date,m,{ok:!d.diet[m].ok});render()},
   sport:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{sports:d.sports.includes(v)?d.sports.filter(x=>x!==v):[...d.sports,v]});render()},
   person:t=>{const d=getDay(S.date),v=t.dataset.v;setDay(S.date,{friends:true,people:d.people.includes(v)?d.people.filter(x=>x!==v):[...d.people,v]});render()},
   addPerson:()=>{const v=val("newPerson");if(!v)return;const d=getDay(S.date);if(!d.people.includes(v))setDay(S.date,{friends:true,people:[...d.people,v]});render();document.getElementById("newPerson")?.focus()},
@@ -837,7 +852,8 @@ const IN={
   steps:t=>{const v=t.value===""?null:Math.max(0,parseInt(t.value,10)||0);setDay(S.date,{steps:v});const c=document.getElementById("doneCount");if(c)c.innerHTML=`<b>${score(getDay(S.date))}</b> de 4`},
   social:t=>setDay(S.date,{social:t.value}),
   note:t=>setDay(S.date,{note:t.value}),
-  placeName:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,name:t.value}})}
+  placeName:t=>{const d=getDay(S.date);setDay(S.date,{place:{...d.place,name:t.value}})},
+  mealNote:t=>setMeal(S.date,t.dataset.f,{note:t.value})
 };
 const CH={
   income:t=>{S.finance={...S.finance,income:parseFloat(t.value)||0};persist("finance");render()},
