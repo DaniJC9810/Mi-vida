@@ -16,7 +16,7 @@ Web app personal (PWA) para registrar el día a día con muy poco esfuerzo. Se u
 
 ## Pestañas
 - **Hoy:** entreno, dieta por comida (desayuno/comida/merienda/cena, cada una con check y nota libre si no se cumple), pasos (manual), deporte extra (Fútbol, Pádel, Correr…), social (amigos y con quién), sitio especial (nombre, tipo, estrellas, ¿volverías?, comentario — engloba restaurante, escapada, concierto, etc.), película o serie (visto sí/no, título, nota 1-10, comentario), nota del día 1-5 y una frase. Los domingos aparece la revisión semanal.
-- **Stats:** semana/mes/año, anillos de cumplimiento, rachas, calendario (cada día en 4 franjas de arriba abajo: entreno, dieta, pasos, amigos), mapa del año, pasos, deporte, resumen tipo Wrapped y "Hace cuánto que no…".
+- **Stats:** semana/mes/año, anillos de cumplimiento, rachas, calendario (cada día en 4 franjas de arriba abajo: entreno, dieta, pasos, amigos), mapa del año, pasos, deporte, resumen tipo Wrapped (incluye pelis/series vistas, nota media y favorita), lista de "Películas y series" del periodo con su nota, y "Hace cuánto que no…".
 - **Dinero:** ingresos netos, gastos fijos y ahorro (categoría, periodicidad en meses y meses de inicio/fin opcionales), dinero libre para ocio, proyección a 5 años y objetivos de ahorro. No registra transacciones sueltas (a propósito).
 - **Planes:** tareas a corto plazo y ideas a largo plazo con estados (Idea, Valorando, En marcha, Hecho, Descartado).
 - **Hitos:** cuentas atrás editables (manuales y automáticas desde Dinero), ajustes y copia de seguridad.
