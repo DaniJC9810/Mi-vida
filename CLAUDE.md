@@ -15,8 +15,8 @@ Web app personal (PWA) para registrar el día a día con muy poco esfuerzo. Se u
 - `sw.js`: service worker, red primero con caché de respaldo (funciona sin conexión y siempre carga la última versión publicada). Si cambias la lista de archivos base, sube la versión de `CACHE`.
 
 ## Pestañas
-- **Hoy:** entreno, dieta, pasos (manual), deporte extra (Fútbol, Pádel, Correr…), social (amigos y con quién), sitio especial (nombre, tipo, estrellas, ¿volverías?), nota del día 1-5 y una frase. Los domingos aparece la revisión semanal.
-- **Stats:** semana/mes/año, anillos de cumplimiento, rachas, calendario, pasos, deporte, resumen tipo Wrapped y "Hace cuánto que no…".
+- **Hoy:** entreno, dieta por comida (desayuno/comida/merienda/cena, cada una con check y nota libre si no se cumple), pasos (manual), deporte extra (Fútbol, Pádel, Correr…), social (amigos y con quién), sitio especial (nombre, tipo, estrellas, ¿volverías?), nota del día 1-5 y una frase. Los domingos aparece la revisión semanal.
+- **Stats:** semana/mes/año, anillos de cumplimiento, rachas, calendario (cada día en 4 franjas de arriba abajo: entreno, dieta, pasos, amigos), mapa del año, pasos, deporte, resumen tipo Wrapped y "Hace cuánto que no…".
 - **Dinero:** ingresos netos, gastos fijos y ahorro (categoría, periodicidad en meses y meses de inicio/fin opcionales), dinero libre para ocio, proyección a 5 años y objetivos de ahorro. No registra transacciones sueltas (a propósito).
 - **Planes:** tareas a corto plazo y ideas a largo plazo con estados (Idea, Valorando, En marcha, Hecho, Descartado).
 - **Hitos:** cuentas atrás editables (manuales y automáticas desde Dinero), ajustes y copia de seguridad.
@@ -27,14 +27,14 @@ Los proyectos de Trabajo (imputación y tareas) son una lista fija: JAKE, Rossel
 
 ## Modelo de datos (localStorage `mivida.v1`)
 ```
-{ days:   { "YYYY-MM-DD": {gym, diet, steps, sports[], friends, people[], social, place{name,kind,rating,again}, mood, note} },
+{ days:   { "YYYY-MM-DD": {gym, diet:{desayuno,comida,merienda,cena: {ok,note}}, steps, sports[], friends, people[], social, place{name,kind,rating,again}, mood, note} },
   finance:{ income, items[{id,name,amount,kind:"fijo"|"ahorro",cat,every,start:"YYYY-MM",end:"YYYY-MM"}], goals[{id,name,target,saved,date}] },
   plans:  { tasks[{id,text,due,done,doneAt}], ideas[{id,text,cat,status,note,createdAt}] },
   work:   { entries[{id,date:"YYYY-MM-DD",text,project,hours}], tasks[{id,text,due,priority,project,done,doneAt,createdAt}] },
   emotional: { entries[{id,text,type,createdAt}] },
   meta:   { stepGoal, gymWeek, milestones[{id,name,date}], reviews{}, lastBackup } }
 ```
-`every` en gastos fijos/ahorro es la periodicidad en meses (1 = cada mes, por defecto). Las fechas de hitos y objetivos aceptan "YYYY", "YYYY-MM" o "YYYY-MM-DD".
+`every` en gastos fijos/ahorro es la periodicidad en meses (1 = cada mes, por defecto). Las fechas de hitos y objetivos aceptan "YYYY", "YYYY-MM" o "YYYY-MM-DD". `days[].diet` migra automáticamente al cargar si algún día antiguo tiene `diet` como booleano; "dieta cumplida" (rachas, anillos, franja del calendario) exige las 4 comidas marcadas.
 
 ## Al hacer cambios
 - Prueba que las siete pestañas cargan sin errores y que los datos existentes se siguen viendo.
