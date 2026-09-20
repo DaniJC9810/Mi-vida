@@ -408,7 +408,7 @@ const monthsBetween=(a,b)=>{const [ay,am]=a.split("-").map(Number),[by,bm]=b.spl
 function itemDueAt(it,ym){
   if(it.start&&it.start>ym)return false;
   if(it.end&&ym>it.end)return false;
-  const every=it.every||1;
+  const every=it.every??1;
   if(every>1){const diff=monthsBetween(it.start||ym,ym);if(diff<0||diff%every!==0)return false}
   return true;
 }
@@ -576,19 +576,23 @@ ${socialMonth?`<div class="fact wide"><b>${socialMonth}</b><span>tu mes más soc
   return html;
 }
 
-const EVERY=[[1,"Cada mes"],[2,"Cada 2 meses"],[3,"Cada 3 meses"],[4,"Cada 4 meses"],[6,"Cada 6 meses"],[12,"1 vez al año"]];
+const EVERY=[[0,"No se repite (solo un mes)"],[1,"Cada mes"],[2,"Cada 2 meses"],[3,"Cada 3 meses"],[4,"Cada 4 meses"],[6,"Cada 6 meses"],[12,"1 vez al año"]];
 function itemForm(it){
   it=it||{name:"",amount:"",kind:"fijo",cat:"Vivienda",every:1,start:"",end:""};
   const cats=["Vivienda","Préstamo","Suscripción","Transporte","Seguros","Salud","Gimnasio","Otros"];
-  const every=it.every||1;
+  const every=it.every??1;
+  const dateFields=every===0
+    ?`<label>Mes<input class="plain" id="fStart" type="month" value="${it.start||""}"></label>`
+    :`<div class="two"><label>Desde${every>1?" (mes del próximo pago)":" (opcional)"}<input class="plain" id="fStart" type="month" value="${it.start||""}"></label><label>Hasta, último mes (opcional)<input class="plain" id="fEnd" type="month" value="${it.end||""}"></label></div>`;
+  const help=every===0?"Se descuenta solo ese mes.":every>1?`Se descuenta cada ${every} meses, empezando en el mes "Desde".`:"Se descuenta todos los meses.";
   return `<div class="form">
 <label>Nombre<input class="plain" id="fName" value="${esc(it.name)}" placeholder="Ej. Préstamo coche"></label>
 <div class="two"><label>Importe<input class="plain" id="fAmount" type="number" inputmode="decimal" step="0.01" value="${it.amount}"></label>
 <label>Tipo<select class="plain" id="fKind"><option value="fijo" ${it.kind!=="ahorro"?"selected":""}>Gasto fijo</option><option value="ahorro" ${it.kind==="ahorro"?"selected":""}>Ahorro</option></select></label></div>
 <div class="two"><label>Categoría<select class="plain" id="fCat">${cats.map(c=>`<option ${it.cat===c?"selected":""}>${c}</option>`).join("")}</select></label>
-<label>Repite<select class="plain" id="fEvery">${EVERY.map(([n,l])=>`<option value="${n}" ${every===n?"selected":""}>${l}</option>`).join("")}</select></label></div>
-<div class="two"><label>Desde${every>1?" (mes del próximo pago)":" (opcional)"}<input class="plain" id="fStart" type="month" value="${it.start||""}"></label><label>Hasta, último mes (opcional)<input class="plain" id="fEnd" type="month" value="${it.end||""}"></label></div>
-<p class="sub" style="margin:0 0 4px">${every>1?`Se descuenta cada ${every} meses, empezando en el mes "Desde".`:"Se descuenta todos los meses."}</p>
+<label>Repite<select class="plain" id="fEvery" data-ch="everyLive">${EVERY.map(([n,l])=>`<option value="${n}" ${every===n?"selected":""}>${l}</option>`).join("")}</select></label></div>
+${dateFields}
+<p class="sub" style="margin:0 0 4px">${help}</p>
 <div class="row"><button class="btn" data-act="saveItem" data-id="${it.id||""}">${it.id?"Guardar cambios":"Añadir"}</button>${it.id?`<button class="btn ghost" data-act="cancelItem">Cancelar</button><button class="btn danger" data-act="delItem" data-id="${it.id}" style="margin-left:auto">Borrar</button>`:""}</div></div>`;
 }
 function viewDinero(){
@@ -601,7 +605,7 @@ function viewDinero(){
 <div class="field"><label for="inc">Ingresos netos al mes</label><input id="inc" type="number" inputmode="decimal" step="0.01" value="${inc||""}" placeholder="0" data-ch="income"><span class="sub" style="padding-right:10px">€</span></div></section>`;
   const items=S.finance.items.slice().sort((a,b)=>(b.amount||0)-(a.amount||0));
   const shown=S.showAllItems?items:F.act;
-  const row=it=>{const on=F.act.includes(it),every=it.every||1;let when;
+  const row=it=>{const on=F.act.includes(it),every=it.every??1;let when;
     if(on)when=it.end?`hasta ${ymLabel(it.end)}`:"sin fecha de fin";
     else if(it.start&&it.start>m)when=`empieza ${ymLabel(it.start)}`;
     else if(it.end&&m>it.end)when=`terminó ${ymLabel(it.end)}`;
@@ -618,8 +622,8 @@ function viewDinero(){
   const now=ymOf(new Date());const changes=[];let prev=financeAt(now);
   const vals=[prev.free],labels=[MES[+now.slice(5)-1]];
   for(let i=1;i<=60;i++){const mm=addMonths(now,i);const f=financeAt(mm);vals.push(f.free);labels.push(+mm.slice(5)===1?mm.slice(2,4):"");
-    if(f.free!==prev.free){const ended=prev.act.filter(x=>!f.act.includes(x)&&(x.every||1)===1),started=f.act.filter(x=>!prev.act.includes(x));
-      const txt=[...ended.map(x=>`termina ${x.name}`),...started.map(x=>(x.every||1)>1?`pago de ${x.name}`:`empieza ${x.name}`)].join(", ");
+    if(f.free!==prev.free){const ended=prev.act.filter(x=>!f.act.includes(x)&&(x.every??1)<=1),started=f.act.filter(x=>!prev.act.includes(x));
+      const txt=[...ended.map(x=>`termina ${x.name}`),...started.map(x=>(x.every??1)>1?`pago de ${x.name}`:`empieza ${x.name}`)].join(", ");
       if(txt)changes.push({m:mm,diff:f.free-prev.free,txt})}
     prev=f}
   html+=`<section class="block"><h2>Próximos 5 años</h2><div class="card">${lineChart(vals,labels)}<p class="sub" style="margin:6px 0 0">Dinero libre para ocio cada mes. Los puntos rojos son cambios.</p></div>
@@ -793,8 +797,8 @@ const ACT={
   editItem:t=>{S.editItem=t.dataset.id;render()},
   cancelItem:()=>{S.editItem=null;render()},
   saveItem:t=>{const name=val("fName"),amount=parseFloat(val("fAmount").replace(",","."));if(!name||isNaN(amount))return alertField(!name?"fName":"fAmount");
-    const every=parseInt(val("fEvery"),10)||1,start=val("fStart");if(every>1&&!start)return alertField("fStart");
-    const it={id:t.dataset.id||rid(),name,amount,kind:val("fKind"),cat:val("fCat"),every,start,end:val("fEnd")};
+    const every=parseInt(val("fEvery"),10),start=val("fStart");if((every===0||every>1)&&!start)return alertField("fStart");
+    const it={id:t.dataset.id||rid(),name,amount,kind:val("fKind"),cat:val("fCat"),every,start,end:every===0?start:val("fEnd")};
     const items=S.finance.items.filter(x=>x.id!==it.id);items.push(it);S.finance={...S.finance,items};S.editItem=null;persist("finance");render()},
   delItem:t=>{S.finance={...S.finance,items:S.finance.items.filter(x=>x.id!==t.dataset.id)};S.editItem=null;persist("finance");render()},
   addGoal:()=>{const name=val("gName"),target=parseFloat(val("gTarget"));if(!name||isNaN(target))return alertField(!name?"gName":"gTarget");S.finance={...S.finance,goals:[...S.finance.goals,{id:rid(),name,target,saved:0,date:val("gDate")}]};persist("finance");render()},
@@ -860,7 +864,13 @@ const CH={
   goalSaved:t=>{S.finance={...S.finance,goals:S.finance.goals.map(g=>g.id===t.dataset.id?{...g,saved:parseFloat(t.value)||0}:g)};persist("finance");render()},
   ideaStatus:t=>{S.plans={...S.plans,ideas:S.plans.ideas.map(i=>i.id===t.dataset.id?{...i,status:t.value}:i)};persist("plans");render()},
   stepGoal:t=>{const v=parseInt(t.value,10);if(v>0){S.meta={...S.meta,stepGoal:v};persist("meta")}},
-  gymWeek:t=>{const v=parseInt(t.value,10);if(v>0&&v<=7){S.meta={...S.meta,gymWeek:v};persist("meta")}}
+  gymWeek:t=>{const v=parseInt(t.value,10);if(v>0&&v<=7){S.meta={...S.meta,gymWeek:v};persist("meta")}},
+  everyLive:t=>{
+    const form=t.closest(".form");
+    const id=form.querySelector('[data-act="saveItem"]').dataset.id||"";
+    const it={id,name:val("fName"),amount:val("fAmount"),kind:val("fKind"),cat:val("fCat"),every:parseInt(t.value,10),start:val("fStart"),end:val("fEnd")};
+    form.outerHTML=itemForm(it);
+  }
 };
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act]");if(t&&ACT[t.dataset.act]){e.preventDefault();ACT[t.dataset.act](t,e)}});
 document.addEventListener("input",e=>{const t=e.target.closest("[data-in]");if(t&&IN[t.dataset.in])IN[t.dataset.in](t)});

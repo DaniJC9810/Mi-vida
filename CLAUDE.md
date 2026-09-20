@@ -34,7 +34,7 @@ Los proyectos de Trabajo (imputación y tareas) son una lista fija: JAKE, Rossel
   emotional: { entries[{id,text,type,createdAt}] },
   meta:   { stepGoal, gymWeek, milestones[{id,name,date}], reviews{}, lastBackup } }
 ```
-`every` en gastos fijos/ahorro es la periodicidad en meses (1 = cada mes, por defecto). Las fechas de hitos y objetivos aceptan "YYYY", "YYYY-MM" o "YYYY-MM-DD". `days[].diet` migra automáticamente al cargar si algún día antiguo tiene `diet` como booleano; "dieta cumplida" (rachas, anillos, franja del calendario) exige las 4 comidas marcadas.
+`every` en gastos fijos/ahorro es la periodicidad en meses: 0 = no se repite (solo el mes de "start"), 1 = cada mes (por defecto), 2+ = cada N meses desde "start". Las fechas de hitos y objetivos aceptan "YYYY", "YYYY-MM" o "YYYY-MM-DD". `days[].diet` migra automáticamente al cargar si algún día antiguo tiene `diet` como booleano; "dieta cumplida" (rachas, anillos, franja del calendario) exige las 4 comidas marcadas.
 
 ## Al hacer cambios
 - Prueba que las siete pestañas cargan sin errores y que los datos existentes se siguen viendo.
